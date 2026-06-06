@@ -72,6 +72,16 @@ export const useGameStore = defineStore('game', () => {
         if (msg.standings) standings.value = msg.standings
         judgeId.value = msg.next_judge_id
         break
+      case 'state_sync':
+        // Full state restore on reconnect
+        judgeId.value = msg.judge_id || ''
+        if (msg.question_term) questionTerm.value = msg.question_term
+        if (msg.question_definition) judgeDefinition.value = msg.question_definition
+        if (msg.vote_options) voteOptions.value = msg.vote_options
+        if (msg.standings) standings.value = msg.standings
+        if (msg.answer_submitted) answerSubmitted.value = true
+        if (msg.vote_cast) voteCast.value = true
+        break
     }
   }
 

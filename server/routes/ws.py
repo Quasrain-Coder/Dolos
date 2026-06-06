@@ -54,6 +54,40 @@ async def game_websocket(
         "phase": room.phase.value,
     })
 
+    # If game is in progress, sync current state to reconnected player
+    if room.phase.value not in ("waiting", "game_over") and room.current_game:
+        game = room.current_game
+        cr = game.current_round
+        sync = {
+            "type": "state_sync",
+            "phase": room.phase.value,
+            "judge_id": cr.judge_id if cr else room.players[0].id,
+        }
+        if cr:
+            sync["question_term"] = cr.question.term
+            # Send the real definition ONLY to the judge
+            if player_id == cr.judge_id:
+                sync["question_definition"] = cr.question.real_definition
+            # If in voting phase, send vote options
+            if room.phase.value == "voting" and cr.shuffled_answers:
+                sync["vote_options"] = [
+                    {"index": i, "text": a["text"]}
+                    for i, a in enumerate(cr.shuffled_answers)
+                ]
+            # If already submitted, tell the player
+            if player_id in cr.fake_answers:
+                sync["answer_submitted"] = True
+            # If already voted, tell the player
+            if player_id in cr.votes:
+                sync["vote_cast"] = True
+        # Send standings
+        standings = sorted(room.players, key=lambda p: p.score, reverse=True)
+        sync["standings"] = [
+            {"nickname": p.nickname, "score": p.score, "player_id": p.id}
+            for p in standings
+        ]
+        await ws_manager.send_to_player(room_id, player_id, sync)
+
     try:
         while True:
             raw = await ws.receive_text()

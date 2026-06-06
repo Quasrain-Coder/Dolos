@@ -1,15 +1,38 @@
 // client/src/stores/room.js
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+
+const STORAGE_KEY = 'dolos_session'
+
+function loadSession() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch { return {} }
+}
+
+function saveSession(roomId, myPlayerId, myToken) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ roomId, myPlayerId, myToken }))
+}
 
 export const useRoomStore = defineStore('room', () => {
-  const roomId = ref('')
+  // Restore session from localStorage (survives page refresh)
+  const saved = loadSession()
+
+  const roomId = ref(saved.roomId || '')
   const players = ref([])
-  const myPlayerId = ref('')
-  const myToken = ref('')
+  const myPlayerId = ref(saved.myPlayerId || '')
+  const myToken = ref(saved.myToken || '')
   const phase = ref('waiting')
   const hostId = ref('')
   const connected = ref(false)
+
+  // Persist credentials whenever they change
+  watch([myPlayerId, myToken, roomId], () => {
+    if (myPlayerId.value && myToken.value) {
+      saveSession(roomId.value, myPlayerId.value, myToken.value)
+    }
+  }, { deep: true })
 
   const isHost = computed(() => myPlayerId.value === hostId.value)
   const playerCount = computed(() => players.value.length)
