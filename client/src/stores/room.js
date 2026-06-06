@@ -6,17 +6,17 @@ const STORAGE_KEY = 'dolos_session'
 
 function loadSession() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = sessionStorage.getItem(STORAGE_KEY)
     return raw ? JSON.parse(raw) : {}
   } catch { return {} }
 }
 
 function saveSession(roomId, myPlayerId, myToken) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({ roomId, myPlayerId, myToken }))
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ roomId, myPlayerId, myToken }))
 }
 
 export const useRoomStore = defineStore('room', () => {
-  // Restore session from localStorage (survives page refresh)
+  // Restore session from sessionStorage (survives page refresh)
   const saved = loadSession()
 
   const roomId = ref(saved.roomId || '')
