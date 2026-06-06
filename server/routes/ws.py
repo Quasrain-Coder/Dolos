@@ -227,6 +227,16 @@ async def game_websocket(
         room_manager.remove_player(room_id, player_id)
         if room_manager.get_room(room_id):
             room = room_manager.get_room(room_id)
+            # If the host disconnected, pass host to the first connected player
+            if room.host_id == player_id:
+                # Clear old host flag
+                old_host = room.get_player(player_id)
+                if old_host:
+                    old_host.is_host = False
+                connected = room.connected_players()
+                if connected:
+                    room.host_id = connected[0].id
+                    connected[0].is_host = True
             await ws_manager.broadcast_to_all(room_id, {
                 "type": "room_update",
                 "players": [p.to_dict() for p in room.players],
