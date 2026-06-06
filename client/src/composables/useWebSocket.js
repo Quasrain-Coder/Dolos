@@ -7,6 +7,7 @@ export function useWebSocket() {
   const ws = ref(null)
   const roomStore = useRoomStore()
   const gameStore = useGameStore()
+  let reconnectTimer = null
 
   function connect(roomId, playerId, token) {
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -38,6 +39,10 @@ export function useWebSocket() {
 
     ws.value.onclose = () => {
       roomStore.connected = false
+      console.log('WebSocket disconnected, attempting reconnect...')
+      reconnectTimer = setTimeout(() => {
+        connect(roomId, playerId, token)
+      }, 2000)
     }
   }
 
@@ -48,6 +53,10 @@ export function useWebSocket() {
   }
 
   function disconnect() {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
     if (ws.value) {
       ws.value.close()
       ws.value = null
