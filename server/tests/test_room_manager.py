@@ -31,11 +31,13 @@ class TestRoomManager:
         found = rm.get_room(room.id.lower())
         assert found is not None
 
-    def test_remove_player_cleans_empty_room(self):
+    def test_remove_player_marks_disconnected(self):
         rm = RoomManager()
         room, player = rm.create_room("唯一玩家")
         rm.remove_player(room.id, player.id)
-        assert rm.get_room(room.id) is None
+        # Room persists even when all players disconnect
+        assert rm.get_room(room.id) is not None
+        assert player.is_connected is False
 
     def test_reconnect_player(self):
         rm = RoomManager()

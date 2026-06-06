@@ -65,12 +65,8 @@ class RoomManager:
         if player is None:
             return None
         player.is_connected = False
-        # Remove completely only during WAITING phase
-        if room.phase == GamePhase.WAITING:
-            room.players = [p for p in room.players if p.id != player_id]
-        # Clean up empty rooms
-        if len(room.players) == 0:
-            del self._rooms[room.id]
+        # Only mark disconnected — don't remove from list
+        # Players can reconnect and rooms persist
         return player
 
     def reconnect_player(self, room_id: str, player_id: str, token: str) -> Player | None:
