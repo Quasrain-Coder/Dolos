@@ -3,13 +3,18 @@ import { ref } from 'vue'
 import { useRoomStore } from '../stores/room'
 import { useGameStore } from '../stores/game'
 
+// Module-level singleton — shared across all component instances
+const ws = ref(null)
+let reconnectTimer = null
+
 export function useWebSocket() {
-  const ws = ref(null)
   const roomStore = useRoomStore()
   const gameStore = useGameStore()
-  let reconnectTimer = null
 
   function connect(roomId, playerId, token) {
+    // Don't reconnect if already connected
+    if (ws.value && ws.value.readyState === WebSocket.OPEN) return
+
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
     const host = location.host
     const url = `${protocol}//${host}/ws/${roomId}?player_id=${playerId}&token=${token}`
