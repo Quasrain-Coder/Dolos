@@ -34,7 +34,7 @@
         :disabled="!roomStore.canStart"
         @click="startGame"
       >
-        {{ roomStore.canStart ? '🎮 开始游戏' : `等待玩家加入 (至少4人，当前${roomStore.playerCount}人)` }}
+        {{ roomStore.canStart ? '🎮 开始游戏' : `等待玩家加入 (至少2人，当前${roomStore.playerCount}人)` }}
       </button>
       <p v-else class="waiting-hint">等待房主开始游戏...</p>
     </div>

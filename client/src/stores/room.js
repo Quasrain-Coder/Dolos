@@ -36,7 +36,7 @@ export const useRoomStore = defineStore('room', () => {
 
   const isHost = computed(() => myPlayerId.value === hostId.value)
   const playerCount = computed(() => players.value.length)
-  const canStart = computed(() => isHost.value && playerCount.value >= 4 && phase.value === 'waiting')
+  const canStart = computed(() => isHost.value && playerCount.value >= 2 && phase.value === 'waiting')
 
   function setRoom(data) {
     roomId.value = data.id

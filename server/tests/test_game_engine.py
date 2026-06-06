@@ -33,7 +33,7 @@ class TestGameEngine:
         assert room.current_game is not None
 
     def test_start_game_not_enough_players(self):
-        room = make_room_with_players(3)
+        room = make_room_with_players(1)
         with pytest.raises(NotEnoughPlayersError):
             self.engine.start_game(room, room.host_id, make_question())
 
