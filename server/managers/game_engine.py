@@ -1,4 +1,5 @@
 import random
+from collections import defaultdict
 from server.models import Room, Game, Round, GamePhase, Player, Question
 from server.config import MIN_PLAYERS
 
@@ -180,7 +181,7 @@ class GameEngine:
 
     def next_round(self, room: Room, host_id: str) -> dict | None:
         if room.phase != GamePhase.REVEALING and room.phase != GamePhase.ROUND_END:
-            raise InvalidPhaseError("当前不在回合结束阶段")
+            raise InvalidPhaseError("当前不是揭露或回合结束阶段")
         if host_id != room.host_id:
             raise NotHostError("只有房主可以控制回合")
 
@@ -200,6 +201,7 @@ class GameEngine:
             game.judge_index = (current_judge_idx + 1) % len(connected)
 
         next_judge = connected[game.judge_index]
+        game.next_judge_id = next_judge.id
         room.phase = GamePhase.DRAWING
 
         return {
@@ -226,22 +228,26 @@ class GameEngine:
         }
 
     def _validate_judge(self, room: Room, judge_id: str) -> None:
-        if room.current_game is None or room.current_game.current_round is None:
-            return  # DRAWING phase, no current round yet
-        # In DRAWING phase, check that the player is the next judge
         if room.phase == GamePhase.DRAWING:
-            connected = room.connected_players()
-            if connected:
-                expected_judge = connected[room.current_game.judge_index]
-                if judge_id != expected_judge.id:
-                    raise NotJudgeError(f"当前法官是 {expected_judge.nickname}")
-        else:
+            game = room.current_game
+            if game is None:
+                return
+            if game.next_judge_id:
+                if judge_id != game.next_judge_id:
+                    raise NotJudgeError("你不是本回合的法官")
+            else:
+                # First round: host is judge (judge_index = 0)
+                connected = room.connected_players()
+                if connected:
+                    expected_judge = connected[game.judge_index]
+                    if judge_id != expected_judge.id:
+                        raise NotJudgeError(f"当前法官是 {expected_judge.nickname}")
+        elif room.current_game is not None and room.current_game.current_round is not None:
             current_round = room.current_game.current_round
             if judge_id != current_round.judge_id:
                 raise NotJudgeError("你不是本回合法官")
 
     def _calculate_scores(self, round_obj: Round, players: list[Player]) -> dict:
-        from collections import defaultdict
         scores = defaultdict(int)
         correct_index = None
         for i, a in enumerate(round_obj.shuffled_answers):

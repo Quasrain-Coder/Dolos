@@ -34,6 +34,7 @@ class Game:
     rounds: list[Round] = field(default_factory=list)
     current_round_index: int = -1
     judge_index: int = 0
+    next_judge_id: str = ""
     phase: GamePhase = GamePhase.WAITING
 
     @property
