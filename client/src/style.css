@@ -66,6 +66,8 @@ html, body {
 .room-header h2 { margin-bottom: 8px; }
 .room-code { display: flex; gap: 12px; align-items: center; }
 .room-code .code { font-size: 28px; font-weight: bold; color: var(--primary); letter-spacing: 6px; }
+.btn-copy { background: none; border: 1px solid var(--border); color: var(--text-dim); font-size: 18px; padding: 4px 8px; border-radius: 6px; cursor: pointer; transition: color 0.2s; }
+.btn-copy:hover { color: var(--accent); }
 .player-list { margin: 12px 0; }
 .player-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; margin-bottom: 4px; font-size: 15px; }
 .player-item.me { background: var(--surface-hover); }

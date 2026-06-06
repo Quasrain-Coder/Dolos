@@ -43,16 +43,25 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useRoomStore } from '../stores/room'
 
 const router = useRouter()
+const route = useRoute()
 const roomStore = useRoomStore()
 
 const nickname = ref('')
 const roomCode = ref('')
 const error = ref('')
+
+// If URL has a room code (e.g. /#/join/KK4Z), pre-fill it
+onMounted(() => {
+  const codeFromUrl = route.params.roomCode
+  if (codeFromUrl) {
+    roomCode.value = codeFromUrl.toUpperCase()
+  }
+})
 
 async function createRoom() {
   if (!nickname.value.trim()) return

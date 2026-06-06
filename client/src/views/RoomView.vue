@@ -6,6 +6,9 @@
       <div class="room-code">
         <span class="label">房间码</span>
         <span class="code">{{ roomStore.roomId }}</span>
+        <button class="btn-copy" @click="copyInviteLink" :title="copied ? '已复制!' : '复制邀请链接'">
+          {{ copied ? '✅' : '🔗' }}
+        </button>
       </div>
     </div>
 
@@ -39,7 +42,7 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRoomStore } from '../stores/room'
 import { useWebSocket } from '../composables/useWebSocket'
@@ -47,11 +50,19 @@ import { useWebSocket } from '../composables/useWebSocket'
 const route = useRoute()
 const roomStore = useRoomStore()
 const { connect, send } = useWebSocket()
+const copied = ref(false)
 
 onMounted(() => {
   const roomId = route.params.id
   connect(roomId, roomStore.myPlayerId, roomStore.myToken)
 })
+
+function copyInviteLink() {
+  const url = `${window.location.origin}/#/join/${roomStore.roomId}`
+  navigator.clipboard.writeText(url)
+  copied.value = true
+  setTimeout(() => copied.value = false, 2000)
+}
 
 function startGame() {
   send('start_game')
