@@ -16,6 +16,10 @@ class RoomFullError(Exception):
     pass
 
 
+class RoomNicknameTakenError(Exception):
+    pass
+
+
 class RoomManager:
     def __init__(self) -> None:
         self._rooms: dict[str, Room] = {}
@@ -49,6 +53,14 @@ class RoomManager:
             raise RoomInGameError("游戏已开始，无法加入")
         if len(room.players) >= MAX_PLAYERS:
             raise RoomFullError("房间已满（最多8人）")
+
+        # Clean up disconnected players
+        room.players = [p for p in room.players if p.is_connected]
+
+        # Check for duplicate nickname
+        for p in room.players:
+            if p.nickname == nickname:
+                raise RoomNicknameTakenError(f"昵称「{nickname}」已被占用，请换一个")
 
         player = Player(nickname=nickname, room_id=room.id)
         room.players.append(player)

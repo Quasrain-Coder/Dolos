@@ -2,7 +2,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from server.managers.room_manager import (
-    RoomManager, RoomNotFoundError, RoomInGameError, RoomFullError,
+    RoomManager, RoomNotFoundError, RoomInGameError, RoomFullError, RoomNicknameTakenError,
 )
 from server.data.db import get_random_question
 
@@ -70,6 +70,8 @@ async def join_room(room_id: str, req: JoinRoomRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except RoomFullError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except RoomNicknameTakenError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     return JoinRoomResponse(
         room_id=room.id,
         player_id=player.id,
