@@ -1,11 +1,23 @@
 import random
 import string
 from server.models import Player, Room, GamePhase
-from server.config import ROOM_CODE_CHARS, ROOM_CODE_LENGTH
+from server.config import ROOM_CODE_CHARS, ROOM_CODE_LENGTH, MAX_PLAYERS
+
+
+class RoomNotFoundError(Exception):
+    pass
+
+
+class RoomInGameError(Exception):
+    pass
+
+
+class RoomFullError(Exception):
+    pass
 
 
 class RoomManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self._rooms: dict[str, Room] = {}
 
     def _generate_code(self) -> str:
@@ -35,7 +47,7 @@ class RoomManager:
             raise RoomNotFoundError(f"房间 {room_id} 不存在")
         if room.phase != GamePhase.WAITING:
             raise RoomInGameError("游戏已开始，无法加入")
-        if len(room.players) >= 8:
+        if len(room.players) >= MAX_PLAYERS:
             raise RoomFullError("房间已满（最多8人）")
 
         player = Player(nickname=nickname, room_id=room.id)
@@ -70,15 +82,3 @@ class RoomManager:
             return None
         player.is_connected = True
         return player
-
-
-class RoomNotFoundError(Exception):
-    pass
-
-
-class RoomInGameError(Exception):
-    pass
-
-
-class RoomFullError(Exception):
-    pass
