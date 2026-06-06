@@ -1,0 +1,17 @@
+[
+  {"term": "叶公好龙", "definition": "比喻口头上说爱好某事物，实际上并不真的爱好", "category": "成语"},
+  {"term": "画蛇添足", "definition": "比喻做了多余的事，反而有害无益", "category": "成语"},
+  {"term": "对牛弹琴", "definition": "比喻对不懂事理的人讲道理，白费口舌", "category": "成语"},
+  {"term": "亡羊补牢", "definition": "比喻在受到损失之后想办法补救，免得以后再受损失", "category": "成语"},
+  {"term": "掩耳盗铃", "definition": "比喻自己欺骗自己，明明掩盖不了的事情偏要设法掩盖", "category": "成语"},
+  {"term": "杯弓蛇影", "definition": "比喻因疑神疑鬼而引起恐惧", "category": "成语"},
+  {"term": "刻舟求剑", "definition": "比喻拘泥不变通，不懂得根据实际情况处理问题", "category": "成语"},
+  {"term": "守株待兔", "definition": "比喻死守狭隘经验，不知变通", "category": "成语"},
+  {"term": "买椟还珠", "definition": "比喻没有眼力，取舍不当", "category": "成语"},
+  {"term": "邯郸学步", "definition": "比喻模仿别人不成，反而把自己原来的长处丢了", "category": "成语"},
+  {"term": "量子纠缠", "definition": "两个粒子无论相隔多远，状态会瞬间相互关联的现象", "category": "科技术语"},
+  {"term": "薛定谔的猫", "definition": "一个关于量子叠加态的思想实验，猫在盒子打开前同时处于生死两种状态", "category": "科技术语"},
+  {"term": "彭罗斯阶梯", "definition": "一种不可能存在的几何结构，四条楼梯首尾相连却永远向上", "category": "冷知识"},
+  {"term": "曼德拉效应", "definition": "指大众对历史的集体记忆与史实不符的现象", "category": "冷知识"},
+  {"term": "忒修斯之船", "definition": "一个哲学悖论：如果一艘船的所有零件都被替换了，它还是原来那艘船吗", "category": "冷知识"}
+]
