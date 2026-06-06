@@ -177,11 +177,23 @@ async def game_websocket(
                         "type": "answer_submitted",
                     })
                     current_round = room.current_game.current_round
+                    total_expected = len(room.connected_players()) - 1  # exclude judge
                     await ws_manager.send_to_player(room_id, current_round.judge_id, {
                         "type": "answer_progress",
                         "received": len(current_round.fake_answers),
-                        "total": len(room.connected_players()) - 1,
+                        "total": total_expected,
                     })
+                    # Auto-collect when all non-judge players have submitted
+                    if len(current_round.fake_answers) >= total_expected:
+                        options = game_engine.judge_collect(room, current_round.judge_id)
+                        await ws_manager.broadcast_to_all(room_id, {
+                            "type": "vote_options",
+                            "options": options,
+                        })
+                        await ws_manager.broadcast_to_all(room_id, {
+                            "type": "phase_change",
+                            "phase": room.phase.value,
+                        })
 
                 elif msg_type == "cast_vote":
                     answer_index = msg.get("answer_index")
@@ -194,6 +206,19 @@ async def game_websocket(
                     await ws_manager.send_to_player(room_id, player_id, {
                         "type": "vote_cast",
                     })
+                    # Auto-reveal when all non-judge players have voted
+                    current_round = room.current_game.current_round
+                    total_voters = len(room.connected_players()) - 1
+                    if len(current_round.votes) >= total_voters:
+                        reveal = game_engine.judge_end_vote(room, current_round.judge_id)
+                        await ws_manager.broadcast_to_all(room_id, {
+                            "type": "reveal",
+                            **reveal,
+                        })
+                        await ws_manager.broadcast_to_all(room_id, {
+                            "type": "phase_change",
+                            "phase": room.phase.value,
+                        })
 
                 elif msg_type == "next_round":
                     info = game_engine.next_round(room, player_id)
