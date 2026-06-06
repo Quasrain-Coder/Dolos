@@ -1,7 +1,9 @@
 from enum import Enum
 from dataclasses import dataclass, field
 from typing import Optional
-import uuid
+
+from server.models.player import Player
+from server.models.question import Question
 
 
 class GamePhase(str, Enum):
@@ -14,12 +16,9 @@ class GamePhase(str, Enum):
     GAME_OVER = "game_over"
 
 
-from server.models.player import Player
-from server.models.question import Question
-
-
 @dataclass
 class Round:
+    """Internal model — not serialized to clients via to_dict()."""
     question: Question
     judge_id: str
     fake_answers: dict = field(default_factory=dict)       # player_id → text
@@ -31,7 +30,8 @@ class Round:
 
 @dataclass
 class Game:
-    rounds: list = field(default_factory=list)
+    """Internal model — not serialized to clients via to_dict()."""
+    rounds: list[Round] = field(default_factory=list)
     current_round_index: int = -1
     judge_index: int = 0
     phase: GamePhase = GamePhase.WAITING
@@ -46,7 +46,7 @@ class Game:
 @dataclass
 class Room:
     id: str
-    players: list = field(default_factory=list)
+    players: list[Player] = field(default_factory=list)
     host_id: str = ""
     phase: GamePhase = GamePhase.WAITING
     current_game: Optional[Game] = None

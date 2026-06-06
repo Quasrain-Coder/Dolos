@@ -31,6 +31,53 @@ class TestGamePhase:
         assert GamePhase.ANSWERING.value == "answering"
 
 
+class TestRound:
+    def test_round_creation_with_defaults(self):
+        q = Question(id=1, term="叶公好龙", real_definition="比喻口头上说爱好...")
+        r = Round(question=q, judge_id="player1")
+        assert r.judge_id == "player1"
+        assert r.fake_answers == {}
+        assert r.shuffled_answers == []
+        assert r.votes == {}
+        assert r.scores_awarded == {}
+        assert r.round_number == 0
+
+    def test_round_with_custom_values(self):
+        q = Question(id=1, term="叶公好龙", real_definition="比喻")
+        r = Round(question=q, judge_id="player1", round_number=2)
+        r.fake_answers["p2"] = "假答案"
+        assert r.fake_answers == {"p2": "假答案"}
+
+
+class TestGame:
+    def test_game_creation(self):
+        g = Game()
+        assert g.rounds == []
+        assert g.current_round_index == -1
+        assert g.judge_index == 0
+        assert g.phase == GamePhase.WAITING
+
+    def test_current_round_none_when_no_rounds(self):
+        g = Game()
+        assert g.current_round is None
+
+    def test_current_round_returns_correct_round(self):
+        g = Game()
+        q = Question(id=1, term="叶公好龙", real_definition="比喻")
+        r = Round(question=q, judge_id="p1", round_number=1)
+        g.rounds.append(r)
+        g.current_round_index = 0
+        assert g.current_round is r
+        assert g.current_round.round_number == 1
+
+    def test_current_round_none_when_index_out_of_range(self):
+        g = Game()
+        q = Question(id=1, term="叶公好龙", real_definition="比喻")
+        g.rounds.append(Round(question=q, judge_id="p1"))
+        g.current_round_index = 5  # out of range
+        assert g.current_round is None
+
+
 class TestRoom:
     def test_create_room(self):
         room = Room(id="AB12", host_id="host1")
