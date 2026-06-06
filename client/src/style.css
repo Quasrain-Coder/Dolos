@@ -114,6 +114,8 @@ html, body {
 .judge-question-info .definition { color: var(--accent); margin-top: 4px; font-size: 14px; }
 .judge-hint { text-align: center; color: var(--text-dim); padding: 12px; }
 .judge-panel .btn { margin-top: 8px; }
+.host-controls { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--surface); padding: 16px; border-radius: 16px 16px 0 0; z-index: 20; }
+.host-controls .btn { margin-top: 8px; }
 .game-over { text-align: center; padding-top: 20px; }
 .game-over h2 { font-size: 28px; margin-bottom: 20px; }
 .final-standings { margin-bottom: 24px; }

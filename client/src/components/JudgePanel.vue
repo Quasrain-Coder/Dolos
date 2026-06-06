@@ -20,10 +20,6 @@
       <button class="btn btn-warn btn-lg" @click="judgeAction('end_vote')">🔔 结束投票 → 揭晓</button>
     </div>
 
-    <div v-if="roomStore.phase === 'revealing' || roomStore.phase === 'round_end'">
-      <button v-if="roomStore.isHost" class="btn btn-primary btn-lg" @click="send('next_round')">▶ 下一回合</button>
-      <button v-if="roomStore.isHost" class="btn btn-secondary" @click="send('end_game')">🏁 结束游戏</button>
-    </div>
   </div>
 </template>
 
