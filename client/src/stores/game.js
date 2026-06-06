@@ -33,6 +33,7 @@ export const useGameStore = defineStore('game', () => {
       revealData.value = null
     }
     if (phase === 'drawing') {
+      judgeId.value = data.judge_id || ''
       answerSubmitted.value = false
       voteCast.value = false
       myVote.value = null
