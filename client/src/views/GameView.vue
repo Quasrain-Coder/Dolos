@@ -26,10 +26,10 @@
       </div>
     </div>
 
-    <!-- Host controls during reveal (visible regardless of being judge) -->
-    <div v-if="roomStore.isHost && (roomStore.phase === 'revealing' || roomStore.phase === 'round_end')" class="host-controls">
-      <button class="btn btn-primary btn-lg" @click="send('next_round')">▶ 下一回合</button>
-      <button class="btn btn-secondary" @click="send('end_game')">🏁 结束游戏</button>
+    <!-- Round controls during reveal: judge advances, host can end -->
+    <div v-if="roomStore.phase === 'revealing' || roomStore.phase === 'round_end'" class="host-controls">
+      <button v-if="gameStore.isJudge" class="btn btn-primary btn-lg" @click="send('next_round')">▶ 下一回合</button>
+      <button v-if="roomStore.isHost" class="btn btn-secondary" @click="send('end_game')">🏁 结束游戏</button>
     </div>
 
     <JudgePanel v-if="gameStore.isJudge && roomStore.phase === 'revealing'" />
