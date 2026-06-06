@@ -126,9 +126,19 @@ async def game_websocket(
                             "type": "phase_change",
                             "phase": room.phase.value,
                         })
+                    else:
+                        await ws_manager.send_to_player(room_id, player_id, {
+                            "type": "error", "message": f"未知操作: {action}"
+                        })
 
                 elif msg_type == "submit_answer":
-                    game_engine.submit_answer(room, player_id, msg["text"])
+                    text = msg.get("text")
+                    if text is None:
+                        await ws_manager.send_to_player(room_id, player_id, {
+                            "type": "error", "message": "缺少 text 字段"
+                        })
+                        continue
+                    game_engine.submit_answer(room, player_id, text)
                     await ws_manager.send_to_player(room_id, player_id, {
                         "type": "answer_submitted",
                     })
@@ -140,7 +150,13 @@ async def game_websocket(
                     })
 
                 elif msg_type == "cast_vote":
-                    game_engine.cast_vote(room, player_id, msg["answer_index"])
+                    answer_index = msg.get("answer_index")
+                    if answer_index is None:
+                        await ws_manager.send_to_player(room_id, player_id, {
+                            "type": "error", "message": "缺少 answer_index 字段"
+                        })
+                        continue
+                    game_engine.cast_vote(room, player_id, answer_index)
                     await ws_manager.send_to_player(room_id, player_id, {
                         "type": "vote_cast",
                     })
