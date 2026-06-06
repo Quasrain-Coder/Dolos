@@ -1,0 +1,5 @@
+ROOM_CODE_LENGTH = 4
+ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O/1/I to avoid confusion
+MAX_PLAYERS = 8
+MIN_PLAYERS = 4
+QUESTION_CATEGORIES = ["成语", "冷知识", "网络梗", "科技术语", "历史"]
