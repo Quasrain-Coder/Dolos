@@ -24,7 +24,7 @@ export const useGameStore = defineStore('game', () => {
   function setPhase(phase, data) {
     if (phase === 'answering') {
       questionTerm.value = data.question_term || ''
-      judgeId.value = data.judge_id || ''
+      if (data.judge_id) judgeId.value = data.judge_id
       myAnswer.value = ''
       answerSubmitted.value = false
       voteCast.value = false
@@ -33,7 +33,7 @@ export const useGameStore = defineStore('game', () => {
       revealData.value = null
     }
     if (phase === 'drawing') {
-      judgeId.value = data.judge_id || ''
+      if (data.judge_id) judgeId.value = data.judge_id
       answerSubmitted.value = false
       voteCast.value = false
       myVote.value = null
