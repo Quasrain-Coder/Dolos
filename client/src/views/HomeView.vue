@@ -67,6 +67,7 @@ async function createRoom() {
   if (!nickname.value.trim()) return
   error.value = ''
   try {
+    sessionStorage.removeItem('dolos_session')
     const resp = await fetch('/api/rooms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -78,6 +79,7 @@ async function createRoom() {
       return
     }
     const data = await resp.json()
+    roomStore.players = []
     roomStore.roomId = data.room_id
     roomStore.myPlayerId = data.player_id
     roomStore.myToken = data.token
@@ -92,6 +94,7 @@ async function joinRoom() {
   if (!nickname.value.trim() || !roomCode.value.trim()) return
   error.value = ''
   try {
+    sessionStorage.removeItem('dolos_session')
     const resp = await fetch(`/api/rooms/${roomCode.value.trim().toUpperCase()}/join`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
