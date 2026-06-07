@@ -1,18 +1,49 @@
 <template>
   <div class="game">
+    <!-- Role badge for mode 2 -->
+    <div v-if="roomStore.isWhoIsHonest && gameStore.myRole" class="role-badge-top" :class="gameStore.myRole">
+      {{ gameStore.roleLabel }}
+    </div>
+
     <ScoreBoard />
 
     <div class="game-main">
+      <!-- DRAWING: waiting for judge (classic) or system (mode 2) -->
       <div v-if="roomStore.phase === 'drawing'" class="phase-waiting">
-        <p v-if="gameStore.isJudge">你是法官，请抽题</p>
-        <p v-else>等待法官 {{ judgeNickname }} 抽题...</p>
+        <p v-if="roomStore.isClassic">
+          {{ gameStore.isJudge ? '你是法官，请抽题' : `等待法官 ${judgeNickname} 抽题...` }}
+        </p>
+        <p v-else>系统准备中...</p>
       </div>
 
-      <AnswerInput v-if="roomStore.phase === 'answering' && !gameStore.isJudge" />
-      <JudgePanel v-if="gameStore.isJudge && (roomStore.phase === 'drawing' || roomStore.phase === 'answering' || roomStore.phase === 'voting')" />
-      <VotingPanel v-if="roomStore.phase === 'voting' && !gameStore.isJudge" />
+      <!-- ANSWERING -->
+      <!-- Mode 1: non-judge players submit -->
+      <AnswerInput v-if="roomStore.phase === 'answering' && roomStore.isClassic && !gameStore.isJudge" />
+      <!-- Mode 2: honest + bluffers submit; detective watches -->
+      <AnswerInput v-if="roomStore.phase === 'answering' && roomStore.isWhoIsHonest && !gameStore.isDetective" />
+      <!-- Mode 2: detective sees question but doesn't submit -->
+      <div v-if="roomStore.phase === 'answering' && roomStore.isWhoIsHonest && gameStore.isDetective" class="phase-waiting">
+        <div class="question-card">
+          <div class="label">这道题是</div>
+          <div class="term">{{ gameStore.questionTerm }}</div>
+          <div class="hint">🕵️ 等待其他玩家提交答案，之后由你来投票和猜测老实人</div>
+        </div>
+      </div>
+
+      <!-- Judge panel (classic mode only) -->
+      <JudgePanel v-if="roomStore.isClassic && gameStore.isJudge && (roomStore.phase === 'drawing' || roomStore.phase === 'answering' || roomStore.phase === 'voting')" />
+
+      <!-- VOTING -->
+      <!-- Mode 1: non-judge vote -->
+      <VotingPanel v-if="roomStore.phase === 'voting' && roomStore.isClassic && !gameStore.isJudge" />
+      <!-- Mode 2: all vote -->
+      <VotingPanel v-if="roomStore.phase === 'voting' && roomStore.isWhoIsHonest" />
+
+      <!-- REVEALING -->
       <RevealPanel v-if="roomStore.phase === 'revealing' || roomStore.phase === 'round_end'" />
 
+
+      <!-- GAME OVER -->
       <div v-if="roomStore.phase === 'game_over'" class="game-over">
         <h2>🏆 游戏结束!</h2>
         <div class="final-standings">
@@ -26,13 +57,40 @@
       </div>
     </div>
 
-    <!-- Round controls during reveal: judge advances, host can end -->
-    <div v-if="roomStore.phase === 'revealing' || roomStore.phase === 'round_end'" class="host-controls">
-      <button v-if="gameStore.isJudge" class="btn btn-primary btn-lg" @click="send('next_round')">▶ 下一回合</button>
-      <button v-if="roomStore.isHost" class="btn btn-secondary" @click="send('end_game')">🏁 结束游戏</button>
+    <!-- Round controls during reveal: all players click ready, host can end game -->
+    <div
+      v-if="(roomStore.phase === 'revealing' || roomStore.phase === 'round_end') && !(roomStore.isWhoIsHonest && gameStore.awaitingDetective)"
+      class="host-controls"
+    >
+      <!-- Ready button for all players -->
+      <button
+        v-if="!gameStore.iAmReady"
+        class="btn btn-primary btn-lg"
+        @click="clickReady"
+      >
+        ✅ 就绪（{{ gameStore.readyCount }}/{{ gameStore.totalForReady }}）
+      </button>
+      <div v-else class="ready-done">
+        ✅ 已就绪（等待其他人... {{ gameStore.readyCount }}/{{ gameStore.totalForReady }}）
+      </div>
+
+      <!-- Ready player list -->
+      <div v-if="gameStore.readyPlayerIds.length > 0" class="ready-players">
+        <span
+          v-for="pid in gameStore.readyPlayerIds"
+          :key="pid"
+          class="ready-player-tag"
+        >✅ {{ getPlayerName(pid) }}</span>
+      </div>
+
+      <!-- End game (host only) -->
+      <button v-if="roomStore.isHost" class="btn btn-secondary" @click="send('end_game')">
+        🏁 结束游戏
+      </button>
     </div>
 
-    <JudgePanel v-if="gameStore.isJudge && roomStore.phase === 'revealing'" />
+    <!-- Classic mode: judge panel during reveal -->
+    <JudgePanel v-if="roomStore.isClassic && gameStore.isJudge && roomStore.phase === 'revealing'" />
   </div>
 </template>
 
@@ -57,6 +115,16 @@ const judgeNickname = computed(() => {
   const p = roomStore.players.find(p => p.id === gameStore.judgeId)
   return p ? p.nickname : '?'
 })
+
+function getPlayerName(pid) {
+  const p = roomStore.players.find(p => p.id === pid)
+  return p ? p.nickname : '?'
+}
+
+function clickReady() {
+  gameStore.iAmReady = true
+  send('ready_next_round')
+}
 
 onMounted(() => {
   if (!roomStore.connected) {

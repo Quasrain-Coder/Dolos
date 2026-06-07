@@ -26,6 +26,7 @@ export const useRoomStore = defineStore('room', () => {
   const phase = ref('waiting')
   const hostId = ref('')
   const connected = ref(false)
+  const gameMode = ref('classic')
 
   // Persist credentials whenever they change
   watch([myPlayerId, myToken, roomId], () => {
@@ -37,6 +38,12 @@ export const useRoomStore = defineStore('room', () => {
   const isHost = computed(() => myPlayerId.value === hostId.value)
   const playerCount = computed(() => players.value.length)
   const canStart = computed(() => isHost.value && playerCount.value >= 2 && phase.value === 'waiting')
+  const isClassic = computed(() => gameMode.value === 'classic')
+  const isWhoIsHonest = computed(() => gameMode.value === 'who_is_honest')
+
+  const modeLabel = computed(() => {
+    return gameMode.value === 'classic' ? '经典模式' : '谁是老实人'
+  })
 
   function setRoom(data) {
     roomId.value = data.id
@@ -50,6 +57,7 @@ export const useRoomStore = defineStore('room', () => {
       players.value = msg.players
       hostId.value = msg.host_id
       if (msg.phase) phase.value = msg.phase
+      if (msg.mode) gameMode.value = msg.mode
     }
     if (msg.type === 'phase_change') {
       phase.value = msg.phase
@@ -57,8 +65,8 @@ export const useRoomStore = defineStore('room', () => {
   }
 
   return {
-    roomId, players, myPlayerId, myToken, phase, hostId, connected,
-    isHost, playerCount, canStart,
+    roomId, players, myPlayerId, myToken, phase, hostId, connected, gameMode,
+    isHost, playerCount, canStart, isClassic, isWhoIsHonest, modeLabel,
     setRoom, updateFromMessage,
   }
 })

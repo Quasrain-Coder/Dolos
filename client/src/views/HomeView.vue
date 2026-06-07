@@ -16,6 +16,31 @@
         @keyup.enter="createRoom"
       />
 
+      <!-- Mode selector -->
+      <div class="mode-selector">
+        <label class="label">游戏模式</label>
+        <div class="mode-options">
+          <div
+            class="mode-card"
+            :class="{ active: selectedMode === 'classic' }"
+            @click="selectedMode = 'classic'"
+          >
+            <span class="mode-icon">🎭</span>
+            <span class="mode-name">经典模式</span>
+            <span class="mode-desc">法官出题·编假答案·投票猜真</span>
+          </div>
+          <div
+            class="mode-card"
+            :class="{ active: selectedMode === 'who_is_honest' }"
+            @click="selectedMode = 'who_is_honest'"
+          >
+            <span class="mode-icon">🕵️</span>
+            <span class="mode-name">谁是老实人</span>
+            <span class="mode-desc">隐藏角色·老实人说实话·大聪明来猜</span>
+          </div>
+        </div>
+      </div>
+
       <div class="actions">
         <button class="btn btn-primary" @click="createRoom" :disabled="!nickname.trim()">
           ✨ 创建新房间
@@ -54,6 +79,7 @@ const roomStore = useRoomStore()
 const nickname = ref('')
 const roomCode = ref('')
 const error = ref('')
+const selectedMode = ref('classic')
 
 // If URL has a room code (e.g. /#/join/KK4Z), pre-fill it
 onMounted(() => {
@@ -71,7 +97,7 @@ async function createRoom() {
     const resp = await fetch('/api/rooms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nickname: nickname.value.trim() }),
+      body: JSON.stringify({ nickname: nickname.value.trim(), mode: selectedMode.value }),
     })
     if (!resp.ok) {
       const data = await resp.json()
@@ -84,6 +110,7 @@ async function createRoom() {
     roomStore.myPlayerId = data.player_id
     roomStore.myToken = data.token
     roomStore.hostId = data.host_id
+    roomStore.gameMode = selectedMode.value
     router.push(`/room/${data.room_id}`)
   } catch (e) {
     error.value = '网络错误，请重试'

@@ -1,9 +1,17 @@
+<!-- client/src/components/AnswerInput.vue -->
 <template>
   <div class="answer-input">
     <div class="question-card">
       <div class="label">这道题是</div>
       <div class="term">{{ gameStore.questionTerm }}</div>
-      <div class="hint">写出一个能骗过别人的假定义</div>
+      <div class="hint" v-if="!gameStore.isHonest">写出一个能骗过别人的假定义</div>
+      <div class="hint honest-hint" v-else>你是老实人！参考下方真定义，用自己的话写出答案</div>
+    </div>
+
+    <!-- Reference definition for honest player (mode 2) -->
+    <div v-if="gameStore.isHonest && gameStore.roleDefinition" class="reference-def card">
+      <div class="label">📖 真定义（参考）</div>
+      <div class="ref-text">{{ gameStore.roleDefinition }}</div>
     </div>
 
     <div v-if="!gameStore.answerSubmitted">

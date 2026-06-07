@@ -10,6 +10,9 @@
           {{ copied ? '✅' : '🔗' }}
         </button>
       </div>
+      <div class="mode-badge">
+        {{ roomStore.isClassic ? '🎭 经典模式' : '🕵️ 谁是老实人' }}
+      </div>
     </div>
 
     <div class="card">
@@ -26,6 +29,10 @@
           <span v-if="p.id === roomStore.myPlayerId" class="tag">你</span>
           <span v-if="p.is_host" class="tag host-tag">房主</span>
         </div>
+      </div>
+
+      <div v-if="roomStore.isWhoIsHonest" class="mode-hint">
+        <p>🕵️ <strong>谁是老实人</strong>：每回合随机分配隐藏角色 —— 老实人说真话，大聪明来猜，其他人编假话忽悠！</p>
       </div>
 
       <button
@@ -65,6 +72,6 @@ function copyInviteLink() {
 }
 
 function startGame() {
-  send('start_game')
+  send('start_game', { mode: roomStore.gameMode })
 }
 </script>

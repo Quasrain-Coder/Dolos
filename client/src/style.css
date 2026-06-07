@@ -85,7 +85,12 @@ html, body {
 .vote-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 .vote-option { display: flex; align-items: flex-start; gap: 12px; padding: 14px; background: var(--surface); border-radius: 8px; border: 2px solid transparent; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
 .vote-option.selected { border-color: var(--accent); background: var(--surface-hover); }
+.vote-option.eliminated { opacity: 0.35; border-color: var(--primary); cursor: not-allowed; }
+.eliminated-tag { font-size: 14px; flex-shrink: 0; }
 .vote-option .letter { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--primary); color: #fff; border-radius: 50%; font-weight: bold; font-size: 14px; flex-shrink: 0; }
+.vote-option-content { flex: 1; min-width: 0; }
+.vote-option-content .text { display: block; }
+.vote-option-content .author-tag { display: inline-block; font-size: 11px; color: var(--text-dim); margin-top: 4px; background: var(--surface-hover); padding: 1px 8px; border-radius: 8px; }
 .voted-msg { text-align: center; color: var(--accent); font-size: 16px; padding: 20px; }
 .section-title { font-size: 20px; font-weight: bold; margin-bottom: 12px; }
 .correct-answer { border: 2px solid var(--accent); }
@@ -116,6 +121,11 @@ html, body {
 .judge-panel .btn { margin-top: 8px; }
 .host-controls { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--surface); padding: 16px; border-radius: 16px 16px 0 0; z-index: 20; }
 .host-controls .btn { margin-top: 8px; }
+
+/* --- Ready-for-next --- */
+.ready-done { text-align: center; padding: 14px; color: var(--accent); font-size: 15px; font-weight: 600; background: var(--surface-hover); border-radius: 8px; border: 1px solid var(--accent); }
+.ready-players { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; justify-content: center; }
+.ready-player-tag { font-size: 12px; padding: 4px 10px; background: #1a3a2a; color: var(--accent); border-radius: 12px; border: 1px solid var(--accent); }
 .game-over { text-align: center; padding-top: 20px; }
 .game-over h2 { font-size: 28px; margin-bottom: 20px; }
 .final-standings { margin-bottom: 24px; }
@@ -129,3 +139,109 @@ html, body {
 .player-dot.offline { opacity: 0.4; }
 .dot-icon { font-size: 14px; }
 .dot-score { color: var(--accent); font-weight: bold; }
+
+/* --- Mode selector --- */
+.mode-selector { margin: 20px 0 4px; }
+.mode-options { display: flex; gap: 10px; margin-top: 8px; }
+.mode-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px;
+  background: var(--surface-hover);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  text-align: center;
+}
+.mode-card.active { border-color: var(--primary); background: var(--surface); }
+.mode-card .mode-icon { font-size: 24px; }
+.mode-card .mode-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.mode-card .mode-desc { font-size: 11px; color: var(--text-dim); line-height: 1.3; }
+
+/* --- Mode badge in lobby --- */
+.mode-badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 12px;
+  background: var(--surface-hover);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.mode-hint {
+  background: var(--surface-hover);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px 0;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* --- Role badge (top of game view) --- */
+.role-badge-top {
+  text-align: center;
+  padding: 8px 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: bold;
+}
+.role-badge-top.honest { background: #1a3a2a; color: var(--accent); border: 1px solid var(--accent); }
+.role-badge-top.detective { background: #3a2a1a; color: var(--warn); border: 1px solid var(--warn); }
+.role-badge-top.bluffer { background: var(--surface-hover); color: var(--text-dim); border: 1px solid var(--border); }
+
+/* --- Honest player reference definition --- */
+.reference-def { border: 1px dashed var(--accent); background: #1a2a2a; }
+.reference-def .ref-text { font-size: 15px; color: var(--accent); margin-top: 6px; line-height: 1.5; }
+.textarea.readonly { background: var(--surface-hover); border-color: var(--accent); color: var(--accent); cursor: default; }
+.honest-hint { color: var(--accent); font-weight: 600; }
+.waiting-sub { font-size: 13px; color: var(--text-dim); margin-top: 8px; }
+
+/* --- Awaiting detective --- */
+.awaiting-detective { text-align: center; padding: 20px; border: 2px dashed var(--warn); }
+.awaiting-detective p { color: var(--warn); font-size: 16px; }
+
+/* --- Detective guess result --- */
+.detective-result { text-align: center; }
+.detective-result .guess-outcome { font-size: 20px; font-weight: bold; margin: 8px 0; }
+.detective-result .guess-outcome.correct { color: var(--accent); }
+.detective-result .guess-outcome:not(.correct) { color: var(--primary); }
+.detective-result .guess-detail { font-size: 14px; color: var(--text-dim); margin-top: 4px; }
+
+/* --- Detective guess panel --- */
+.detective-guess-panel { margin-bottom: 16px; }
+.detective-card .detective-badge { text-align: center; font-size: 24px; font-weight: bold; color: var(--warn); margin-bottom: 8px; }
+.detective-card .detective-prompt { text-align: center; font-size: 14px; color: var(--text-dim); margin-bottom: 12px; }
+.guess-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.guess-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface-hover);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.guess-option.selected { border-color: var(--warn); background: var(--surface); }
+.guess-option .guess-icon { font-size: 18px; }
+.guess-option .guess-name { font-size: 15px; font-weight: 500; }
+
+/* --- Wrong guesses (detective panel) --- */
+.wrong-guesses { margin-bottom: 12px; }
+.wrong-label { font-size: 13px; color: var(--primary); margin-bottom: 4px; }
+.wrong-list { display: flex; gap: 6px; flex-wrap: wrap; }
+.wrong-tag { font-size: 12px; padding: 3px 10px; background: #3a1a1a; color: var(--primary); border-radius: 12px; border: 1px solid var(--primary); }
+.no-options { text-align: center; color: var(--text-dim); padding: 20px; }
+
+/* --- Detective guess success --- */
+.guess-success { text-align: center; margin-top: 16px; padding: 16px; background: #1a3a2a; border-radius: 8px; border: 1px solid var(--accent); }
+.success-badge { font-size: 22px; font-weight: bold; color: var(--accent); margin-bottom: 8px; }
+.definition-reveal { margin-top: 12px; text-align: left; background: #1a2a2a; border-radius: 8px; padding: 12px; border: 1px dashed var(--accent); }

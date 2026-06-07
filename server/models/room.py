@@ -6,6 +6,11 @@ from server.models.player import Player
 from server.models.question import Question
 
 
+class GameMode(str, Enum):
+    CLASSIC = "classic"
+    WHO_IS_HONEST = "who_is_honest"
+
+
 class GamePhase(str, Enum):
     WAITING = "waiting"
     DRAWING = "drawing"
@@ -26,6 +31,10 @@ class Round:
     votes: dict = field(default_factory=dict)               # voter_id → answer_index
     scores_awarded: dict = field(default_factory=dict)      # player_id → int
     round_number: int = 0
+    # Mode 2 (WHO_IS_HONEST) fields
+    honest_player_id: str = ""
+    detective_player_id: str = ""
+    detective_wrong_answer_indices: list = field(default_factory=list)  # wrong answer indices detective voted
 
 
 @dataclass
@@ -36,6 +45,8 @@ class Game:
     judge_index: int = 0
     next_judge_id: str = ""
     phase: GamePhase = GamePhase.WAITING
+    mode: GameMode = GameMode.CLASSIC
+    ready_for_next: set = field(default_factory=set)  # player_ids who clicked "ready for next round"
 
     @property
     def current_round(self) -> Optional[Round]:
@@ -51,6 +62,7 @@ class Room:
     host_id: str = ""
     phase: GamePhase = GamePhase.WAITING
     current_game: Optional[Game] = None
+    mode: GameMode = GameMode.CLASSIC
 
     def get_player(self, player_id: str) -> Optional[Player]:
         for p in self.players:
@@ -67,4 +79,5 @@ class Room:
             "players": [p.to_dict() for p in self.players],
             "host_id": self.host_id,
             "phase": self.phase.value,
+            "mode": self.mode.value,
         }

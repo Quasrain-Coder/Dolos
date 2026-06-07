@@ -5,12 +5,14 @@ from server.managers.room_manager import (
     RoomManager, RoomNotFoundError, RoomInGameError, RoomFullError, RoomNicknameTakenError,
 )
 from server.data.db import get_random_question
+from server.models.room import GameMode
 
 router = APIRouter(prefix="/api/rooms", tags=["rooms"])
 
 
 class CreateRoomRequest(BaseModel):
     nickname: str
+    mode: str = "classic"
 
 
 class JoinRoomRequest(BaseModel):
@@ -49,6 +51,11 @@ async def create_room(req: CreateRoomRequest):
     if not req.nickname or not req.nickname.strip():
         raise HTTPException(status_code=400, detail="昵称不能为空")
     room, player = rm.create_room(req.nickname.strip())
+    # Set game mode
+    try:
+        room.mode = GameMode(req.mode)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"无效的游戏模式: {req.mode}")
     return CreateRoomResponse(
         room_id=room.id,
         player_id=player.id,
