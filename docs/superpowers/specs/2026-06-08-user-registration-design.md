@@ -12,7 +12,7 @@
 - 注册/登录成功后返回 token，客户端存 `localStorage`（跨标签页、跨 session 持久）
 - 登出时清掉服务端 token + 客户端 `localStorage`
 - 不引入 JWT，不增加额外依赖
-- 新登录不强制旧 token 失效（允许多设备同时在线）
+- 新登录生成新 token 替换旧 token（单 session，更安全）
 
 ## 数据模型
 
