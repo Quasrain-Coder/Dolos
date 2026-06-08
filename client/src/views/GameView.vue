@@ -49,8 +49,13 @@
         <div class="final-standings">
           <div v-for="(p, i) in gameStore.standings" :key="p.player_id" class="final-row">
             <span class="rank">{{ ['🥇','🥈','🥉'][i] || `#${i+1}` }}</span>
-            <span class="name">{{ p.nickname }}</span>
+            <span class="name" :class="{ clickable: playerUserId(p.player_id) }" @click.stop="toggleStats(p.player_id)">{{ p.nickname }}</span>
             <span class="score">{{ p.score }}分</span>
+            <PlayerStatsPopup
+              v-if="selectedPid === p.player_id && playerUserId(p.player_id)"
+              :user-id="playerUserId(p.player_id)"
+              @close="selectedPid = null"
+            />
           </div>
         </div>
         <button class="btn btn-primary btn-lg" @click="$router.push('/')">返回首页</button>
@@ -95,7 +100,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRoomStore } from '../stores/room'
 import { useGameStore } from '../stores/game'
@@ -105,6 +110,7 @@ import AnswerInput from '../components/AnswerInput.vue'
 import VotingPanel from '../components/VotingPanel.vue'
 import RevealPanel from '../components/RevealPanel.vue'
 import JudgePanel from '../components/JudgePanel.vue'
+import PlayerStatsPopup from '../components/PlayerStatsPopup.vue'
 
 const route = useRoute()
 const roomStore = useRoomStore()
@@ -116,9 +122,20 @@ const judgeNickname = computed(() => {
   return p ? p.nickname : '?'
 })
 
+const selectedPid = ref(null)
+
 function getPlayerName(pid) {
   const p = roomStore.players.find(p => p.id === pid)
   return p ? p.nickname : '?'
+}
+
+function playerUserId(pid) {
+  const p = roomStore.players.find(p => p.id === pid)
+  return p?.user_id || null
+}
+
+function toggleStats(pid) {
+  selectedPid.value = selectedPid.value === pid ? null : pid
 }
 
 function clickReady() {

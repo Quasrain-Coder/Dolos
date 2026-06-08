@@ -101,6 +101,12 @@ const roomCode = ref('')
 const error = ref('')
 const selectedMode = ref('classic')
 const showProfile = ref(false)
+const effectiveNickname = computed(() => {
+  if (roomStore.isLoggedIn && roomStore.currentUser) {
+    return roomStore.currentUser.username
+  }
+  return nickname.value.trim()
+})
 
 const effectiveNickname = computed(() => {
   if (roomStore.isLoggedIn && roomStore.currentUser) {
