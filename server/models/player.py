@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 import uuid
 import secrets
+from typing import Optional
 
 
 @dataclass
@@ -12,6 +13,7 @@ class Player:
     is_host: bool = False
     score: int = 0
     is_connected: bool = True
+    user_id: Optional[int] = None
 
     def to_dict(self) -> dict:
         return {
@@ -20,4 +22,5 @@ class Player:
             "is_host": self.is_host,
             "score": self.score,
             "is_connected": self.is_connected,
+            "user_id": self.user_id,
         }

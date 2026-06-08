@@ -28,6 +28,14 @@ export const useRoomStore = defineStore('room', () => {
   const connected = ref(false)
   const gameMode = ref('classic')
 
+  // Auth state
+  const currentUser = ref(null)
+  const authChecked = ref(false)
+  const authError = ref('')
+  const showLoginModal = ref(false)
+
+  const isLoggedIn = computed(() => currentUser.value !== null)
+
   // Persist credentials whenever they change
   watch([myPlayerId, myToken, roomId], () => {
     if (myPlayerId.value && myToken.value) {
@@ -44,6 +52,85 @@ export const useRoomStore = defineStore('room', () => {
   const modeLabel = computed(() => {
     return gameMode.value === 'classic' ? '经典模式' : '谁是老实人'
   })
+
+  function initAuth() {
+    const token = localStorage.getItem('dolos_user')
+    if (!token) {
+      authChecked.value = true
+      return
+    }
+    fetch('/api/users/me', {
+      headers: { 'Authorization': `Bearer ${token}` },
+    })
+      .then(resp => {
+        if (!resp.ok) {
+          localStorage.removeItem('dolos_user')
+          return null
+        }
+        return resp.json()
+      })
+      .then(user => {
+        if (user) {
+          currentUser.value = user
+        }
+        authChecked.value = true
+      })
+      .catch(() => {
+        authChecked.value = true
+      })
+  }
+
+  async function login(username, password) {
+    authError.value = ''
+    const resp = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    })
+    if (!resp.ok) {
+      const data = await resp.json()
+      authError.value = data.detail || '登录失败'
+      return false
+    }
+    const data = await resp.json()
+    localStorage.setItem('dolos_user', data.token)
+    currentUser.value = data.user
+    authError.value = ''
+    return true
+  }
+
+  async function register(username, password) {
+    authError.value = ''
+    const resp = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    })
+    if (!resp.ok) {
+      const data = await resp.json()
+      authError.value = data.detail || '注册失败'
+      return false
+    }
+    const data = await resp.json()
+    localStorage.setItem('dolos_user', data.token)
+    currentUser.value = data.user
+    authError.value = ''
+    return true
+  }
+
+  async function logout() {
+    const token = localStorage.getItem('dolos_user')
+    if (token) {
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+        })
+      } catch {}
+    }
+    localStorage.removeItem('dolos_user')
+    currentUser.value = null
+  }
 
   function setRoom(data) {
     roomId.value = data.id
@@ -68,5 +155,8 @@ export const useRoomStore = defineStore('room', () => {
     roomId, players, myPlayerId, myToken, phase, hostId, connected, gameMode,
     isHost, playerCount, canStart, isClassic, isWhoIsHonest, modeLabel,
     setRoom, updateFromMessage,
+    // Auth
+    currentUser, authChecked, authError, showLoginModal, isLoggedIn,
+    initAuth, login, register, logout,
   }
 })

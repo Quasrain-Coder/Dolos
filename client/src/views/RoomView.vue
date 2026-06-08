@@ -60,6 +60,7 @@ const { connect, send } = useWebSocket()
 const copied = ref(false)
 
 onMounted(() => {
+  roomStore.initAuth()
   const roomId = route.params.id
   connect(roomId, roomStore.myPlayerId, roomStore.myToken)
 })
