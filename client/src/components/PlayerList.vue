@@ -1,9 +1,23 @@
 <template>
-  <div class="player-list-bar">
-    <div v-for="p in roomStore.players" :key="p.id" class="player-dot" :class="{ judge: p.id === gameStore.judgeId, offline: !p.is_connected }">
-      <span class="dot-icon">{{ p.id === gameStore.judgeId ? '👨‍⚖️' : '🎭' }}</span>
-      <span class="dot-name" :class="{ clickable: p.user_id }" @click.stop="toggleStats(p)">{{ p.nickname }}</span>
-      <span class="dot-score">{{ p.score }}</span>
+  <div class="round-table">
+    <div
+      v-for="p in roomStore.players"
+      :key="p.id"
+      class="table-seat"
+      :class="{
+        judge: roomStore.isClassic && p.id === gameStore.judgeId,
+        offline: !p.is_connected,
+        submitted: gameStore.submittedPlayers.includes(p.id),
+        voted: gameStore.votedPlayers.includes(p.id),
+      }"
+    >
+      <div class="seat-avatar">
+        <span class="seat-icon">{{ seatIcon(p) }}</span>
+        <span v-if="gameStore.votedPlayers.includes(p.id)" class="seat-badge vote">🗳️</span>
+        <span v-else-if="gameStore.submittedPlayers.includes(p.id)" class="seat-badge done">✅</span>
+      </div>
+      <span class="seat-name" :class="{ clickable: p.user_id }" @click.stop="toggleStats(p)">{{ p.nickname }}</span>
+      <span class="seat-score">{{ p.score }}分</span>
       <PlayerStatsPopup
         v-if="selectedPid === p.id && p.user_id"
         :user-id="p.user_id"
@@ -22,6 +36,12 @@ import PlayerStatsPopup from './PlayerStatsPopup.vue'
 const roomStore = useRoomStore()
 const gameStore = useGameStore()
 const selectedPid = ref(null)
+
+function seatIcon(p) {
+  if (!p.is_connected) return '💤'
+  if (roomStore.isClassic && p.id === gameStore.judgeId) return '👨‍⚖️'
+  return '🎭'
+}
 
 function toggleStats(p) {
   selectedPid.value = selectedPid.value === p.id ? null : p.id

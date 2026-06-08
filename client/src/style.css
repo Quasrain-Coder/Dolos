@@ -133,12 +133,60 @@ html, body {
 .final-row .rank { font-size: 24px; }
 .final-row .name { flex: 1; }
 .final-row .score { color: var(--accent); font-weight: bold; }
-.player-list-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; padding: 8px; background: var(--surface); border-radius: 8px; }
-.player-dot { display: flex; align-items: center; gap: 4px; font-size: 12px; padding: 4px 8px; background: var(--surface-hover); border-radius: 16px; }
-.player-dot.judge { border: 1px solid var(--warn); }
-.player-dot.offline { opacity: 0.4; }
-.dot-icon { font-size: 14px; }
-.dot-score { color: var(--accent); font-weight: bold; }
+/* --- Round table --- */
+.round-table {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px 8px;
+  margin-bottom: 16px;
+  background: radial-gradient(ellipse at center, var(--surface-hover) 0%, var(--bg) 70%);
+  border-radius: var(--radius);
+  min-height: 80px;
+}
+.table-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  min-width: 80px;
+  position: relative;
+  transition: border-color 0.3s, background 0.3s, transform 0.2s;
+}
+.table-seat.judge { border-color: var(--warn); }
+.table-seat.offline { opacity: 0.35; }
+.table-seat.submitted { border-color: var(--accent); background: #1a2a2a; }
+.table-seat.voted { border-color: var(--accent); background: #1a2a2a; }
+.seat-avatar {
+  position: relative;
+  font-size: 28px;
+  line-height: 1;
+}
+.seat-badge {
+  position: absolute;
+  bottom: -4px;
+  right: -6px;
+  font-size: 14px;
+}
+.seat-name {
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.seat-score {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: bold;
+}
 
 /* --- Mode selector --- */
 .mode-selector { margin: 20px 0 4px; }
@@ -418,12 +466,12 @@ html, body {
 }
 
 /* --- Clickable player names --- */
-.dot-name.clickable, .player-name.clickable, .name.clickable {
+.seat-name.clickable, .player-name.clickable, .name.clickable {
   cursor: pointer;
   border-bottom: 1px dashed var(--text-dim);
   transition: color 0.2s;
 }
-.dot-name.clickable:hover, .player-name.clickable:hover, .name.clickable:hover {
+.seat-name.clickable:hover, .player-name.clickable:hover, .name.clickable:hover {
   color: var(--accent);
 }
 

@@ -261,6 +261,12 @@ async def game_websocket(
                     await ws_manager.send_to_player(room_id, player_id, {
                         "type": "answer_submitted",
                     })
+                    # Broadcast who submitted to all players
+                    await ws_manager.broadcast_to_all(room_id, {
+                        "type": "player_status",
+                        "submitted_players": list(room.current_game.current_round.fake_answers.keys()),
+                        "voted_players": list(room.current_game.current_round.votes.keys()),
+                    })
 
                     game = room.current_game
                     current_round = game.current_round
@@ -394,6 +400,12 @@ async def game_websocket(
                         # Mode 1: normal voting
                         await ws_manager.send_to_player(room_id, player_id, {
                             "type": "vote_cast",
+                        })
+                        # Broadcast who voted to all
+                        await ws_manager.broadcast_to_all(room_id, {
+                            "type": "player_status",
+                            "submitted_players": list(current_round.fake_answers.keys()),
+                            "voted_players": list(current_round.votes.keys()),
                         })
                         total_voters = len(room.connected_players()) - 1  # exclude judge
                         if len(current_round.votes) >= total_voters:
