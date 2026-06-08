@@ -11,7 +11,7 @@
         voted: gameStore.votedPlayers.includes(p.id),
       }"
     >
-      <div class="seat-avatar" :class="{ clickable: p.user_id }" @click.stop="p.user_id && toggleStats(p)">
+      <div class="seat-avatar clickable" @click.stop="toggleStats(p)">
         <span class="seat-icon">{{ seatIcon(p) }}</span>
         <span v-if="gameStore.votedPlayers.includes(p.id)" class="seat-badge vote">🗳️</span>
         <span v-else-if="gameStore.submittedPlayers.includes(p.id)" class="seat-badge done">✅</span>
@@ -23,6 +23,11 @@
         :user-id="p.user_id"
         @close="selectedPid = null"
       />
+      <div v-if="selectedPid === p.id && !p.user_id" class="stats-popup">
+        <div class="stats-username">{{ p.nickname }}</div>
+        <div style="color: var(--text-dim); font-size:13px; text-align:center;">未注册玩家，无历史战绩</div>
+        <button class="stats-close" @click="selectedPid = null">✕</button>
+      </div>
     </div>
   </div>
 </template>
