@@ -6,6 +6,7 @@
     </div>
 
     <ScoreBoard />
+    <PlayerList />
 
     <div class="game-main">
       <!-- DRAWING: waiting for judge (classic) or system (mode 2) -->
@@ -106,6 +107,7 @@ import { useRoomStore } from '../stores/room'
 import { useGameStore } from '../stores/game'
 import { useWebSocket } from '../composables/useWebSocket'
 import ScoreBoard from '../components/ScoreBoard.vue'
+import PlayerList from '../components/PlayerList.vue'
 import AnswerInput from '../components/AnswerInput.vue'
 import VotingPanel from '../components/VotingPanel.vue'
 import RevealPanel from '../components/RevealPanel.vue'

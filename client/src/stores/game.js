@@ -26,6 +26,10 @@ export const useGameStore = defineStore('game', () => {
   const awaitingDetective = ref(false) // reveal phase: waiting for detective to guess
   const waitingForDetectiveVote = ref(false) // mode 2 voting phase: non-detective players wait
 
+  // Round table: track who submitted / voted
+  const submittedPlayers = ref([])
+  const votedPlayers = ref([])
+
   // Ready-for-next state (both modes) — all players click ready to advance
   const readyPlayerIds = ref([])
   const readyCount = ref(0)
@@ -57,6 +61,8 @@ export const useGameStore = defineStore('game', () => {
       myAnswer.value = ''
       answerSubmitted.value = false
       voteCast.value = false
+      submittedPlayers.value = []
+      votedPlayers.value = []
       myVote.value = null
       voteOptions.value = []
       revealData.value = null
@@ -133,6 +139,10 @@ export const useGameStore = defineStore('game', () => {
         // Non-detective: detective is still trying
         waitingForDetectiveVote.value = true
         break
+      case 'player_status':
+        submittedPlayers.value = msg.submitted_players || []
+        votedPlayers.value = msg.voted_players || []
+        break
       case 'answer_submitted':
         answerSubmitted.value = true
         break
@@ -159,6 +169,8 @@ export const useGameStore = defineStore('game', () => {
         detectiveWrongAnswerIndices.value = []
         awaitingDetective.value = false
         // Reset ready state
+        submittedPlayers.value = []
+        votedPlayers.value = []
         iAmReady.value = false
         readyPlayerIds.value = []
         readyCount.value = 0
@@ -206,6 +218,8 @@ export const useGameStore = defineStore('game', () => {
     detectiveGuessSubmitted, detectiveGuessResult, detectiveWrongAnswerIndices, awaitingDetective,
     isHonest, isDetective, isBluffer, roleLabel,
     waitingForDetectiveVote,
+    // Round table
+    submittedPlayers, votedPlayers,
     // Ready-for-next
     readyPlayerIds, readyCount, totalForReady, iAmReady,
   }
