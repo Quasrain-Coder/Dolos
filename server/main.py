@@ -11,7 +11,7 @@ from server.managers.room_manager import RoomManager
 from server.managers.game_engine import GameEngine
 from server.managers.ws_manager import WSManager
 from server.data.db import init_db
-from server.routes import rooms, ws
+from server.routes import rooms, ws, auth, users
 
 # Initialize global singletons
 room_manager = RoomManager()
@@ -32,6 +32,8 @@ app.add_middleware(
 # API + WebSocket routes
 app.include_router(rooms.router)
 app.include_router(ws.router)
+app.include_router(auth.router)
+app.include_router(users.router)
 
 
 @app.on_event("startup")
