@@ -108,6 +108,13 @@ const effectiveNickname = computed(() => {
   return nickname.value.trim()
 })
 
+const effectiveNickname = computed(() => {
+  if (roomStore.isLoggedIn && roomStore.currentUser) {
+    return roomStore.currentUser.username
+  }
+  return nickname.value.trim()
+})
+
 // If URL has a room code (e.g. /#/join/KK4Z), pre-fill it
 onMounted(() => {
   roomStore.initAuth()
