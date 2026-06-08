@@ -387,3 +387,32 @@ html, body {
   color: var(--accent);
   padding: 8px 0;
 }
+
+/* --- Join page --- */
+.join-page {
+  padding-top: 40px;
+}
+.join-page .logo {
+  margin-bottom: 24px;
+}
+.room-code-display {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.room-code-display .code {
+  font-size: 36px;
+  font-weight: bold;
+  color: var(--primary);
+  letter-spacing: 8px;
+  display: block;
+  margin-top: 4px;
+}
+.join-page .btn-secondary {
+  margin-bottom: 0;
+}
+.join-page .divider {
+  margin: 16px 0;
+}
+.join-page .input {
+  margin-bottom: 8px;
+}
