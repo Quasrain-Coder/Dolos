@@ -5,7 +5,6 @@
       :key="p.id"
       class="table-seat"
       :class="{
-        judge: roomStore.isClassic && p.id === gameStore.judgeId,
         offline: !p.is_connected,
         submitted: gameStore.submittedPlayers.includes(p.id),
         voted: gameStore.votedPlayers.includes(p.id),
@@ -44,7 +43,6 @@ const selectedPid = ref(null)
 
 function seatIcon(p) {
   if (!p.is_connected) return '💤'
-  if (roomStore.isClassic && p.id === gameStore.judgeId) return '👨‍⚖️'
   return '🎭'
 }
 

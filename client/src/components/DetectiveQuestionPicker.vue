@@ -1,4 +1,3 @@
-<!-- client/src/components/DetectiveQuestionPicker.vue -->
 <template>
   <div v-if="visible" class="question-picker">
     <div class="picker-header">
@@ -35,7 +34,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 const props = defineProps({
   visible: Boolean,
@@ -47,8 +46,6 @@ const selectedIndex = ref(null)
 const confirming = ref(false)
 const refreshing = ref(false)
 
-// Reset when new candidates arrive
-import { watch } from 'vue'
 watch(() => props.candidates, () => {
   selectedIndex.value = null
   confirming.value = false

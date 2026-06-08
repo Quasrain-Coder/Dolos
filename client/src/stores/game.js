@@ -39,11 +39,6 @@ export const useGameStore = defineStore('game', () => {
   const totalForReady = ref(0)
   const iAmReady = ref(false)
 
-  const isJudge = computed(() => {
-    const room = useRoomStore()
-    return room.myPlayerId === judgeId.value
-  })
-
   const isHonest = computed(() => myRole.value === 'honest')
   const isDetective = computed(() => myRole.value === 'detective')
   const isBluffer = computed(() => myRole.value === 'bluffer')
@@ -235,7 +230,7 @@ export const useGameStore = defineStore('game', () => {
   return {
     questionTerm, questionCategory, judgeId, judgeDefinition, myAnswer, answerSubmitted,
     voteOptions, myVote, voteCast, revealData, standings, gameOver,
-    isJudge, setPhase, updateFromMessage,
+    setPhase, updateFromMessage,
     // Mode 2
     myRole, roleDefinition, detectiveGuessOptions,
     detectiveGuessSubmitted, detectiveGuessResult, detectiveWrongAnswerIndices, awaitingDetective,

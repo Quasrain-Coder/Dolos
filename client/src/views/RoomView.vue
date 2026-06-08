@@ -10,9 +10,7 @@
           {{ copied ? '✅' : '🔗' }}
         </button>
       </div>
-      <div class="mode-badge">
-        {{ roomStore.isClassic ? '🎭 经典模式' : '🕵️ 谁是老实人' }}
-      </div>
+      <div class="mode-badge">🕵️ 谁是老实人</div>
     </div>
 
     <div class="card">
@@ -36,7 +34,7 @@
         </div>
       </div>
 
-      <div v-if="roomStore.isWhoIsHonest" class="mode-hint">
+      <div class="mode-hint">
         <p>🕵️ <strong>谁是老实人</strong>：每回合随机分配隐藏角色 —— 老实人说真话，大聪明来猜，其他人编假话忽悠！</p>
       </div>
 
