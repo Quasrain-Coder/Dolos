@@ -79,6 +79,7 @@ html, body {
 .phase-waiting { text-align: center; padding: 40px 0; color: var(--text-dim); font-size: 18px; }
 .question-card { background: var(--surface); border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 16px; }
 .question-card .term { font-size: 28px; font-weight: bold; color: var(--primary); margin: 8px 0; }
+.question-category { font-size: 11px; background: var(--surface-hover); color: var(--text-dim); padding: 2px 8px; border-radius: 8px; margin-left: 6px; }
 .question-card .hint { font-size: 13px; color: var(--text-dim); }
 .submitted-card { text-align: center; padding: 24px; background: var(--surface); border-radius: var(--radius); border: 1px solid var(--accent); }
 .submitted-card .your-answer { color: var(--text-dim); margin-top: 8px; font-style: italic; }
