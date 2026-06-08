@@ -4,7 +4,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from server.managers.room_manager import RoomManager
 from server.managers.game_engine import GameEngine, GameError
 from server.managers.ws_manager import WSManager
-from server.data.db import get_random_question
+from server.data.db import get_random_question, update_user_stats
 from server.models import GamePhase, GameMode
 
 router = APIRouter()
@@ -369,6 +369,13 @@ async def game_websocket(
                                 "ready_player_ids": [],
                                 "all_ready": False,
                             })
+                            # Update user stats for registered players
+                            for entry in result["standings"]:
+                                pid = entry["player_id"]
+                                player = room.get_player(pid)
+                                if player and player.user_id is not None:
+                                    is_winner = (entry == result["standings"][0])
+                                    update_user_stats(player.user_id, entry["score"], is_winner)
                         else:
                             # Wrong vote — tell detective to try again
                             await ws_manager.send_to_player(room_id, player_id, {
@@ -458,6 +465,16 @@ async def game_websocket(
                         "type": "phase_change",
                         "phase": "game_over",
                     })
+                    # Update user stats for registered players
+                    standings = result.get("standings", [])
+                    if standings:
+                        winner_id = standings[0]["player_id"]
+                        for entry in standings:
+                            pid = entry["player_id"]
+                            player = room.get_player(pid)
+                            if player and player.user_id is not None:
+                                is_winner = (pid == winner_id)
+                                update_user_stats(player.user_id, entry["score"], is_winner)
 
             except GameError as e:
                 await ws_manager.send_to_player(room_id, player_id, {
