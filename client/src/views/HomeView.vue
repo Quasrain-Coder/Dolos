@@ -1,48 +1,38 @@
 <!-- client/src/views/HomeView.vue -->
 <template>
   <div class="home">
+    <div class="auth-bar">
+      <template v-if="roomStore.isLoggedIn && roomStore.currentUser">
+        <span class="auth-user" @click="showProfile = true">👤 {{ roomStore.currentUser.username }}</span>
+        <button class="btn-auth" @click="showProfile = true">📊</button>
+      </template>
+      <button v-else class="btn-auth" @click="roomStore.showLoginModal = true">登录 / 注册</button>
+    </div>
+
     <div class="logo">
       <h1>🎭 DOLOS</h1>
       <p class="subtitle">瞎掰王 — 看谁会忽悠</p>
     </div>
 
     <div class="card">
-      <label class="label">你的昵称</label>
-      <input
-        v-model="nickname"
-        class="input"
-        placeholder="输入显示名称..."
-        maxlength="12"
-        @keyup.enter="createRoom"
-      />
-
-      <!-- Mode selector -->
-      <div class="mode-selector">
-        <label class="label">游戏模式</label>
-        <div class="mode-options">
-          <div
-            class="mode-card"
-            :class="{ active: selectedMode === 'classic' }"
-            @click="selectedMode = 'classic'"
-          >
-            <span class="mode-icon">🎭</span>
-            <span class="mode-name">经典模式</span>
-            <span class="mode-desc">法官出题·编假答案·投票猜真</span>
-          </div>
-          <div
-            class="mode-card"
-            :class="{ active: selectedMode === 'who_is_honest' }"
-            @click="selectedMode = 'who_is_honest'"
-          >
-            <span class="mode-icon">🕵️</span>
-            <span class="mode-name">谁是老实人</span>
-            <span class="mode-desc">隐藏角色·老实人说实话·大聪明来猜</span>
-          </div>
-        </div>
-      </div>
+      <!-- Logged in: no nickname input, use username directly -->
+      <template v-if="roomStore.isLoggedIn && roomStore.currentUser">
+        <label class="label">当前账号</label>
+        <div class="logged-in-name">{{ roomStore.currentUser.username }}</div>
+      </template>
+      <template v-else>
+        <label class="label">你的昵称</label>
+        <input
+          v-model="nickname"
+          class="input"
+          placeholder="输入显示名称..."
+          maxlength="12"
+          @keyup.enter="createRoom"
+        />
+      </template>
 
       <div class="actions">
-        <button class="btn btn-primary" @click="createRoom" :disabled="!nickname.trim()">
+        <button class="btn btn-primary" @click="createRoom" :disabled="!effectiveNickname">
           ✨ 创建新房间
         </button>
 
@@ -56,7 +46,7 @@
             maxlength="4"
             @keyup.enter="joinRoom"
           />
-          <button class="btn btn-secondary" @click="joinRoom" :disabled="!nickname.trim() || !roomCode.trim()">
+          <button class="btn btn-secondary" @click="joinRoom" :disabled="!effectiveNickname || !roomCode.trim()">
             加入
           </button>
         </div>
@@ -64,13 +54,18 @@
 
       <p v-if="error" class="error">{{ error }}</p>
     </div>
+
+    <LoginModal :visible="roomStore.showLoginModal" @close="roomStore.showLoginModal = false" />
+    <ProfilePanel :visible="showProfile" @close="showProfile = false" />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useRoomStore } from '../stores/room'
+import LoginModal from './LoginModal.vue'
+import ProfilePanel from './ProfilePanel.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -79,10 +74,17 @@ const roomStore = useRoomStore()
 const nickname = ref('')
 const roomCode = ref('')
 const error = ref('')
-const selectedMode = ref('classic')
+const showProfile = ref(false)
+const effectiveNickname = computed(() => {
+  if (roomStore.isLoggedIn && roomStore.currentUser) {
+    return roomStore.currentUser.username
+  }
+  return nickname.value.trim()
+})
 
 // If URL has a room code (e.g. /#/join/KK4Z), pre-fill it
 onMounted(() => {
+  roomStore.initAuth()
   const codeFromUrl = route.params.roomCode
   if (codeFromUrl) {
     roomCode.value = codeFromUrl.toUpperCase()
@@ -90,14 +92,21 @@ onMounted(() => {
 })
 
 async function createRoom() {
-  if (!nickname.value.trim()) return
+  if (!effectiveNickname.value) return
   error.value = ''
   try {
     sessionStorage.removeItem('dolos_session')
+    const body = {
+      nickname: effectiveNickname.value,
+      mode: 'who_is_honest',
+    }
+    if (roomStore.currentUser) {
+      body.user_id = roomStore.currentUser.id
+    }
     const resp = await fetch('/api/rooms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nickname: nickname.value.trim(), mode: selectedMode.value }),
+      body: JSON.stringify(body),
     })
     if (!resp.ok) {
       const data = await resp.json()
@@ -110,7 +119,7 @@ async function createRoom() {
     roomStore.myPlayerId = data.player_id
     roomStore.myToken = data.token
     roomStore.hostId = data.host_id
-    roomStore.gameMode = selectedMode.value
+    roomStore.gameMode = 'who_is_honest'
     router.push(`/room/${data.room_id}`)
   } catch (e) {
     error.value = '网络错误，请重试'
@@ -118,14 +127,20 @@ async function createRoom() {
 }
 
 async function joinRoom() {
-  if (!nickname.value.trim() || !roomCode.value.trim()) return
+  if (!effectiveNickname.value || !roomCode.value.trim()) return
   error.value = ''
   try {
     sessionStorage.removeItem('dolos_session')
+    const body = {
+      nickname: effectiveNickname.value,
+    }
+    if (roomStore.currentUser) {
+      body.user_id = roomStore.currentUser.id
+    }
     const resp = await fetch(`/api/rooms/${roomCode.value.trim().toUpperCase()}/join`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nickname: nickname.value.trim() }),
+      body: JSON.stringify(body),
     })
     if (!resp.ok) {
       const data = await resp.json()

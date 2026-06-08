@@ -13,10 +13,12 @@ router = APIRouter(prefix="/api/rooms", tags=["rooms"])
 class CreateRoomRequest(BaseModel):
     nickname: str
     mode: str = "classic"
+    user_id: int | None = None
 
 
 class JoinRoomRequest(BaseModel):
     nickname: str
+    user_id: int | None = None
 
 
 class CreateRoomResponse(BaseModel):
@@ -51,6 +53,8 @@ async def create_room(req: CreateRoomRequest):
     if not req.nickname or not req.nickname.strip():
         raise HTTPException(status_code=400, detail="昵称不能为空")
     room, player = rm.create_room(req.nickname.strip())
+    if req.user_id is not None:
+        player.user_id = req.user_id
     # Set game mode
     try:
         room.mode = GameMode(req.mode)
@@ -71,6 +75,8 @@ async def join_room(room_id: str, req: JoinRoomRequest):
         raise HTTPException(status_code=400, detail="昵称不能为空")
     try:
         room, player = rm.join_room(room_id, req.nickname.strip())
+        if req.user_id is not None:
+            player.user_id = req.user_id
     except RoomNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except RoomInGameError as e:

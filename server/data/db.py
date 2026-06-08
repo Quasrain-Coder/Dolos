@@ -26,6 +26,26 @@ def init_db():
             contributor_id TEXT
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            total_games INTEGER DEFAULT 0,
+            total_wins INTEGER DEFAULT 0,
+            total_score INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS user_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            token TEXT NOT NULL UNIQUE,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    """)
     conn.commit()
 
     # Import built-in questions if table is empty
@@ -50,6 +70,19 @@ def _import_builtin_questions(conn: sqlite3.Connection):
         )
     conn.commit()
     print(f"Imported {len(questions)} built-in questions")
+
+
+def get_random_questions(count: int = 3) -> list[Question]:
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM questions ORDER BY RANDOM() LIMIT ?", (count,)).fetchall()
+    conn.close()
+    return [
+        Question(
+            id=row["id"], term=row["term"], real_definition=row["real_definition"],
+            category=row["category"], source=row["source"], contributor_id=row["contributor_id"],
+        )
+        for row in rows
+    ]
 
 
 def get_random_question() -> Question | None:
@@ -97,3 +130,83 @@ def get_question_count() -> int:
     count = conn.execute("SELECT COUNT(*) FROM questions").fetchone()[0]
     conn.close()
     return count
+
+
+def create_user(username: str, password_hash: str) -> dict | None:
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO users (username, password) VALUES (?, ?)",
+            (username, password_hash),
+        )
+        conn.commit()
+        uid = cursor.lastrowid
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
+        return dict(row)
+    except sqlite3.IntegrityError:
+        return None
+    finally:
+        conn.close()
+
+
+def create_session(user_id: int, token: str) -> None:
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO user_sessions (user_id, token) VALUES (?, ?)",
+        (user_id, token),
+    )
+    conn.commit()
+    conn.close()
+
+
+def delete_session(token: str) -> None:
+    conn = get_connection()
+    conn.execute("DELETE FROM user_sessions WHERE token = ?", (token,))
+    conn.commit()
+    conn.close()
+
+
+def get_user_by_username(username: str) -> dict | None:
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    conn.close()
+    if row is None:
+        return None
+    return dict(row)
+
+
+def get_user_by_token(token: str) -> dict | None:
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT u.* FROM users u JOIN user_sessions s ON u.id = s.user_id WHERE s.token = ?",
+        (token,),
+    ).fetchone()
+    conn.close()
+    if row is None:
+        return None
+    return dict(row)
+
+
+def get_user_by_id(user_id: int) -> dict | None:
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    conn.close()
+    if row is None:
+        return None
+    return dict(row)
+
+
+def update_user_stats(user_id: int, score: int, is_winner: bool) -> None:
+    conn = get_connection()
+    if is_winner:
+        conn.execute(
+            "UPDATE users SET total_games = total_games + 1, total_score = total_score + ?, total_wins = total_wins + 1 WHERE id = ?",
+            (score, user_id),
+        )
+    else:
+        conn.execute(
+            "UPDATE users SET total_games = total_games + 1, total_score = total_score + ? WHERE id = ?",
+            (score, user_id),
+        )
+    conn.commit()
+    conn.close()

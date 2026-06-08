@@ -5,6 +5,7 @@ import { useRoomStore } from './room'
 
 export const useGameStore = defineStore('game', () => {
   const questionTerm = ref('')
+  const questionCategory = ref('')
   const judgeId = ref('')
   const judgeDefinition = ref('')
   const myAnswer = ref('')
@@ -25,17 +26,18 @@ export const useGameStore = defineStore('game', () => {
   const detectiveWrongAnswerIndices = ref([]) // wrong answer indices detective already tried
   const awaitingDetective = ref(false) // reveal phase: waiting for detective to guess
   const waitingForDetectiveVote = ref(false) // mode 2 voting phase: non-detective players wait
+  const candidateQuestions = ref([])        // mode 2: detective's 3 candidate questions
+  const isSelecting = ref(false)            // mode 2: detective is selecting a question
+
+  // Round table: track who submitted / voted
+  const submittedPlayers = ref([])
+  const votedPlayers = ref([])
 
   // Ready-for-next state (both modes) — all players click ready to advance
   const readyPlayerIds = ref([])
   const readyCount = ref(0)
   const totalForReady = ref(0)
   const iAmReady = ref(false)
-
-  const isJudge = computed(() => {
-    const room = useRoomStore()
-    return room.myPlayerId === judgeId.value
-  })
 
   const isHonest = computed(() => myRole.value === 'honest')
   const isDetective = computed(() => myRole.value === 'detective')
@@ -53,16 +55,30 @@ export const useGameStore = defineStore('game', () => {
   function setPhase(phase, data) {
     if (phase === 'answering') {
       questionTerm.value = data.question_term || ''
+      questionCategory.value = data.question_category || ''
       if (data.judge_id) judgeId.value = data.judge_id
       myAnswer.value = ''
       answerSubmitted.value = false
       voteCast.value = false
+      submittedPlayers.value = []
+      votedPlayers.value = []
       myVote.value = null
       voteOptions.value = []
       revealData.value = null
       awaitingDetective.value = false
     }
+    if (phase === 'selecting') {
+      isSelecting.value = true
+      candidateQuestions.value = []
+      answerSubmitted.value = false
+      voteCast.value = false
+      myVote.value = null
+      voteOptions.value = []
+      revealData.value = null
+    }
     if (phase === 'drawing') {
+      isSelecting.value = false
+      candidateQuestions.value = []
       if (data.judge_id) judgeId.value = data.judge_id
       answerSubmitted.value = false
       voteCast.value = false
@@ -87,7 +103,11 @@ export const useGameStore = defineStore('game', () => {
         break
       case 'judge_info':
         questionTerm.value = msg.question_term
+        questionCategory.value = msg.question_category || ''
         judgeDefinition.value = msg.question_definition
+        break
+      case 'candidate_questions':
+        candidateQuestions.value = msg.questions || []
         break
       case 'role_info':
         myRole.value = msg.role
@@ -121,6 +141,9 @@ export const useGameStore = defineStore('game', () => {
         if (msg.question_term) {
           questionTerm.value = msg.question_term
         }
+        if (msg.question_category) {
+          questionCategory.value = msg.question_category
+        }
         break
       case 'vote_wrong':
         // Mode 2: detective voted wrong — try again
@@ -132,6 +155,10 @@ export const useGameStore = defineStore('game', () => {
       case 'detective_retry':
         // Non-detective: detective is still trying
         waitingForDetectiveVote.value = true
+        break
+      case 'player_status':
+        submittedPlayers.value = msg.submitted_players || []
+        votedPlayers.value = msg.voted_players || []
         break
       case 'answer_submitted':
         answerSubmitted.value = true
@@ -159,6 +186,8 @@ export const useGameStore = defineStore('game', () => {
         detectiveWrongAnswerIndices.value = []
         awaitingDetective.value = false
         // Reset ready state
+        submittedPlayers.value = []
+        votedPlayers.value = []
         iAmReady.value = false
         readyPlayerIds.value = []
         readyCount.value = 0
@@ -168,6 +197,7 @@ export const useGameStore = defineStore('game', () => {
         // Full state restore on reconnect
         judgeId.value = msg.judge_id || ''
         if (msg.question_term) questionTerm.value = msg.question_term
+        if (msg.question_category) questionCategory.value = msg.question_category
         if (msg.question_definition) judgeDefinition.value = msg.question_definition
         if (msg.vote_options) voteOptions.value = msg.vote_options
         if (msg.standings) standings.value = msg.standings
@@ -198,14 +228,18 @@ export const useGameStore = defineStore('game', () => {
   }
 
   return {
-    questionTerm, judgeId, judgeDefinition, myAnswer, answerSubmitted,
+    questionTerm, questionCategory, judgeId, judgeDefinition, myAnswer, answerSubmitted,
     voteOptions, myVote, voteCast, revealData, standings, gameOver,
-    isJudge, setPhase, updateFromMessage,
+    setPhase, updateFromMessage,
     // Mode 2
     myRole, roleDefinition, detectiveGuessOptions,
     detectiveGuessSubmitted, detectiveGuessResult, detectiveWrongAnswerIndices, awaitingDetective,
     isHonest, isDetective, isBluffer, roleLabel,
     waitingForDetectiveVote,
+    // Detective question picker
+    candidateQuestions, isSelecting,
+    // Round table
+    submittedPlayers, votedPlayers,
     // Ready-for-next
     readyPlayerIds, readyCount, totalForReady, iAmReady,
   }

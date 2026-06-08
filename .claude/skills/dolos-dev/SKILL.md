@@ -1,9 +1,9 @@
 ---
 name: dolos-dev
 description: >
-  Dolos（瞎掰王）项目开发指南。本项目是一个多人实时派对游戏，后端 Python FastAPI + WebSocket + SQLite，前端 Vue 3 + Vite + Pinia。
-  当你需要在 Dolos 项目中添加新功能、修复 bug、重构代码、编写测试、或理解项目架构时，使用此 skill。
-  触发条件：用户在 Dolos 项目目录下工作，或提到 Dolos/瞎掰王/游戏房间/WebSocket 游戏等相关内容。
+  当你对 /home/quasrain/repos/Dolos 目录下的任何文件进行修改、编辑、新增、删除、重构、修复 bug、添加功能、编写测试、调整配置、更新文档时，必须使用此 skill。
+  只要工作目录或操作涉及 Dolos 仓库，无论任务大小（改一行代码、修一个 typo、调整样式、重构架构），都必须先加载此 skill 获取项目上下文和开发规范。
+  本项目是一个多人实时派对游戏（瞎掰王），后端 Python FastAPI + WebSocket + SQLite，前端 Vue 3 + Vite + Pinia。有经典模式和谁是老实人两种游戏模式。
 ---
 
 # Dolos 项目开发指南

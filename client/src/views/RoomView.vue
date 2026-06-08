@@ -10,9 +10,7 @@
           {{ copied ? '✅' : '🔗' }}
         </button>
       </div>
-      <div class="mode-badge">
-        {{ roomStore.isClassic ? '🎭 经典模式' : '🕵️ 谁是老实人' }}
-      </div>
+      <div class="mode-badge">🕵️ 谁是老实人</div>
     </div>
 
     <div class="card">
@@ -25,13 +23,18 @@
           :class="{ me: p.id === roomStore.myPlayerId, host: p.is_host }"
         >
           <span class="player-icon">{{ p.is_host ? '👑' : '🎭' }}</span>
-          <span class="player-name">{{ p.nickname }}</span>
+          <span class="player-name" :class="{ clickable: p.user_id }" @click.stop="toggleStats(p)">{{ p.nickname }}</span>
           <span v-if="p.id === roomStore.myPlayerId" class="tag">你</span>
           <span v-if="p.is_host" class="tag host-tag">房主</span>
+          <PlayerStatsPopup
+            v-if="selectedPid === p.id && p.user_id"
+            :user-id="p.user_id"
+            @close="selectedPid = null"
+          />
         </div>
       </div>
 
-      <div v-if="roomStore.isWhoIsHonest" class="mode-hint">
+      <div class="mode-hint">
         <p>🕵️ <strong>谁是老实人</strong>：每回合随机分配隐藏角色 —— 老实人说真话，大聪明来猜，其他人编假话忽悠！</p>
       </div>
 
@@ -53,13 +56,20 @@ import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRoomStore } from '../stores/room'
 import { useWebSocket } from '../composables/useWebSocket'
+import PlayerStatsPopup from '../components/PlayerStatsPopup.vue'
 
 const route = useRoute()
 const roomStore = useRoomStore()
 const { connect, send } = useWebSocket()
 const copied = ref(false)
+const selectedPid = ref(null)
+
+function toggleStats(p) {
+  selectedPid.value = selectedPid.value === p.id ? null : p.id
+}
 
 onMounted(() => {
+  roomStore.initAuth()
   const roomId = route.params.id
   connect(roomId, roomStore.myPlayerId, roomStore.myToken)
 })

@@ -4,7 +4,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from server.managers.room_manager import RoomManager
 from server.managers.game_engine import GameEngine, GameError
 from server.managers.ws_manager import WSManager
-from server.data.db import get_random_question
+from server.data.db import get_random_question, update_user_stats
 from server.models import GamePhase, GameMode
 
 router = APIRouter()
@@ -65,39 +65,28 @@ async def game_websocket(
             "mode": game.mode.value,
         }
 
-        if game.mode == GameMode.CLASSIC:
-            sync["judge_id"] = cr.judge_id if cr else room.players[0].id
-        else:
-            # Mode 2: send role info to reconnecting player
-            if cr:
-                if player_id == cr.honest_player_id:
-                    sync["my_role"] = "honest"
-                    sync["question_definition"] = cr.question.real_definition
-                elif player_id == cr.detective_player_id:
-                    sync["my_role"] = "detective"
-                else:
-                    sync["my_role"] = "bluffer"
-                sync["question_term"] = cr.question.term
+        # Send role info to reconnecting player
+        if cr:
+            if player_id == cr.honest_player_id:
+                sync["my_role"] = "honest"
+                sync["question_definition"] = cr.question.real_definition
+            elif player_id == cr.detective_player_id:
+                sync["my_role"] = "detective"
+            else:
+                sync["my_role"] = "bluffer"
+            sync["question_term"] = cr.question.term
+            sync["question_category"] = cr.question.category
 
         if cr:
-            if not sync.get("question_term"):
-                sync["question_term"] = cr.question.term
             # Send vote options if in voting or later
-            # Mode 2: only detective gets vote_options; others get waiting flag
             if room.phase.value in ("voting", "revealing", "round_end") and cr.shuffled_answers:
-                if game.mode == GameMode.WHO_IS_HONEST:
-                    if player_id == cr.detective_player_id:
-                        sync["vote_options"] = [
-                            {"index": i, "text": a["text"], "author": room.get_player(a["player_id"]).nickname if room.get_player(a["player_id"]) else "?"}
-                            for i, a in enumerate(cr.shuffled_answers)
-                        ]
-                    else:
-                        sync["waiting_for_detective_vote"] = True
-                else:
+                if player_id == cr.detective_player_id:
                     sync["vote_options"] = [
-                        {"index": i, "text": a["text"]}
+                        {"index": i, "text": a["text"], "author": room.get_player(a["player_id"]).nickname if room.get_player(a["player_id"]) else "?"}
                         for i, a in enumerate(cr.shuffled_answers)
                     ]
+                else:
+                    sync["waiting_for_detective_vote"] = True
             # If already submitted
             if player_id in cr.fake_answers:
                 sync["answer_submitted"] = True
@@ -107,32 +96,6 @@ async def game_websocket(
             # Mode 2: sync wrong answer indices for detective
             if game.mode == GameMode.WHO_IS_HONEST and player_id == cr.detective_player_id:
                 sync["detective_wrong_indices"] = list(cr.detective_wrong_answer_indices)
-
-        # Re-send reveal data if in reveal phase (classic mode only)
-        if room.phase.value in ("revealing", "round_end") and cr and game.mode == GameMode.CLASSIC:
-            correct_index = None
-            for i, a in enumerate(cr.shuffled_answers):
-                if a["is_real"]:
-                    correct_index = i
-                    break
-            answer_details = []
-            for i, a in enumerate(cr.shuffled_answers):
-                author = "系统（真答案）" if a["is_real"] else (room.get_player(a["player_id"]).nickname if room.get_player(a["player_id"]) else "?")
-                answer_details.append({
-                    "index": i,
-                    "text": a["text"],
-                    "author": author,
-                    "is_real": a["is_real"],
-                    "vote_count": sum(1 for v in cr.votes.values() if v == i),
-                })
-            sync["reveal_data"] = {
-                "correct_index": correct_index,
-                "answers": answer_details,
-                "standings": [
-                    {"nickname": p.nickname, "score": p.score, "player_id": p.id}
-                    for p in sorted(room.players, key=lambda x: x.score, reverse=True)
-                ],
-            }
 
         # Sync ready progress if in reveal/round_end phase
         if room.phase.value in ("revealing", "round_end") and game:
@@ -172,83 +135,50 @@ async def game_websocket(
                     mode = msg.get("mode", room.mode.value)
                     game_engine.start_game(room, player_id, q, mode)
                     game = room.current_game
-                    room.phase = GamePhase.DRAWING
 
-                    if game and game.mode == GameMode.WHO_IS_HONEST:
-                        # Mode 2: auto-start first round
-                        q2 = get_random_question()
-                        if q2 is None:
-                            await ws_manager.send_to_player(room_id, player_id, {
-                                "type": "error", "message": "题库为空"
-                            })
-                            continue
-                        round_info = game_engine.mode2_start_round(room, q2)
-                        # Send phase change to all
-                        await ws_manager.broadcast_to_all(room_id, {
-                            "type": "phase_change",
-                            "phase": room.phase.value,
-                            "question_term": q2.term,
-                            "round_number": round_info["round_number"],
-                        })
-                        # Send role info privately to each player
-                        for pid, role in round_info["roles"].items():
-                            role_msg = {
-                                "type": "role_info",
-                                "role": role,
-                            }
-                            if role == "honest":
-                                role_msg["question_definition"] = round_info["question_definition"]
-                            await ws_manager.send_to_player(room_id, pid, role_msg)
-                    else:
-                        # Mode 1 (classic): existing behavior
-                        room.phase = GamePhase.DRAWING
-                        await ws_manager.broadcast_to_all(room_id, {
-                            "type": "phase_change",
-                            "phase": room.phase.value,
-                            "judge_id": room.players[0].id,
+                    # Enter SELECTING phase — detective picks from 3 candidates
+                    room.phase = GamePhase.SELECTING
+                    roles = game_engine._assign_roles(room)
+                    game.mode2_roles = roles
+                    await ws_manager.broadcast_to_all(room_id, {
+                        "type": "phase_change",
+                        "phase": room.phase.value,
+                    })
+                    for pid, role in roles.items():
+                        role_msg = {"type": "role_info", "role": role}
+                        await ws_manager.send_to_player(room_id, pid, role_msg)
+                    detective_id = next((pid for pid, r in roles.items() if r == "detective"), None)
+                    if detective_id:
+                        candidates = game_engine.get_candidates(room)
+                        await ws_manager.send_to_player(room_id, detective_id, {
+                            "type": "candidate_questions",
+                            "questions": candidates,
                         })
 
-                elif msg_type == "judge_action":
-                    action = msg.get("action", "")
-                    if action == "draw":
-                        q = get_random_question()
-                        if q is None:
-                            await ws_manager.send_to_player(room_id, player_id, {
-                                "type": "error", "message": "题库为空"
-                            })
-                            continue
-                        draw_info = game_engine.judge_draw(room, player_id, q)
-                        await ws_manager.broadcast_to_all(room_id, {
-                            "type": "phase_change",
-                            "phase": room.phase.value,
-                            "judge_id": player_id,
-                            "question_term": q.term,
-                            "round_number": draw_info["round_number"],
-                        })
-                        await ws_manager.send_to_player(room_id, player_id, {
-                            "type": "judge_info",
-                            "question_term": q.term,
-                            "question_definition": q.real_definition,
-                        })
+                elif msg_type == "refresh_candidates":
+                    candidates = game_engine.refresh_candidates(room)
+                    await ws_manager.send_to_player(room_id, player_id, {
+                        "type": "candidate_questions",
+                        "questions": candidates,
+                    })
 
-                    elif action == "collect":
-                        options = game_engine.judge_collect(room, player_id)
-                        await ws_manager.broadcast_to_all(room_id, {
-                            "type": "vote_options",
-                            "options": options,
-                        })
-                        await ws_manager.broadcast_to_all(room_id, {
-                            "type": "phase_change",
-                            "phase": room.phase.value,
-                        })
-
-                    elif action == "end_vote":
-                        reveal = game_engine.judge_end_vote(room, player_id)
-                        await _broadcast_reveal(room, room_manager, game_engine, ws_manager, room_id, reveal)
-                    else:
-                        await ws_manager.send_to_player(room_id, player_id, {
-                            "type": "error", "message": f"未知操作: {action}"
-                        })
+                elif msg_type == "select_question":
+                    index = msg.get("index", 0)
+                    round_info = game_engine.select_question(room, player_id, index)
+                    # Broadcast selected question and phase change to all
+                    await ws_manager.broadcast_to_all(room_id, {
+                        "type": "phase_change",
+                        "phase": room.phase.value,
+                        "question_term": round_info["question_term"],
+                        "question_category": room.current_game.current_round.question.category if room.current_game and room.current_game.current_round else "",
+                        "round_number": round_info["round_number"],
+                    })
+                    # Send role info (honest gets definition)
+                    for pid, role in round_info["roles"].items():
+                        role_msg = {"type": "role_info", "role": role}
+                        if role == "honest":
+                            role_msg["question_definition"] = round_info["question_definition"]
+                        await ws_manager.send_to_player(room_id, pid, role_msg)
 
                 elif msg_type == "submit_answer":
                     text = msg.get("text")
@@ -261,56 +191,39 @@ async def game_websocket(
                     await ws_manager.send_to_player(room_id, player_id, {
                         "type": "answer_submitted",
                     })
+                    # Broadcast who submitted to all players
+                    await ws_manager.broadcast_to_all(room_id, {
+                        "type": "player_status",
+                        "submitted_players": list(room.current_game.current_round.fake_answers.keys()),
+                        "voted_players": list(room.current_game.current_round.votes.keys()),
+                    })
 
                     game = room.current_game
                     current_round = game.current_round
 
-                    if game.mode == GameMode.CLASSIC:
-                        # Mode 1: notify judge of progress
-                        total_expected = len(room.connected_players()) - 1  # exclude judge
-                        await ws_manager.send_to_player(room_id, current_round.judge_id, {
-                            "type": "answer_progress",
-                            "received": len(current_round.fake_answers),
-                            "total": total_expected,
+                    # All except detective submit; auto-collect when done
+                    total_expected = len(room.connected_players()) - 1  # exclude detective
+                    if len(current_round.fake_answers) >= total_expected:
+                        options = game_engine.judge_collect(room, "")
+                        for opt in options:
+                            answer = current_round.shuffled_answers[opt["index"]]
+                            player = room.get_player(answer["player_id"])
+                            opt["author"] = player.nickname if player else "?"
+                        await ws_manager.send_to_player(room_id, current_round.detective_player_id, {
+                            "type": "phase_change",
+                            "phase": room.phase.value,
                         })
-                        # Auto-collect when all non-judge players have submitted
-                        if len(current_round.fake_answers) >= total_expected:
-                            options = game_engine.judge_collect(room, current_round.judge_id)
-                            await ws_manager.broadcast_to_all(room_id, {
-                                "type": "vote_options",
-                                "options": options,
-                            })
-                            await ws_manager.broadcast_to_all(room_id, {
-                                "type": "phase_change",
-                                "phase": room.phase.value,
-                            })
-                    else:
-                        # Mode 2: all except detective submit (detective only guesses)
-                        total_expected = len(room.connected_players()) - 1  # exclude detective
-                        if len(current_round.fake_answers) >= total_expected:
-                            options = game_engine.judge_collect(room, "")
-                            # Add author names for detective's vote options
-                            for opt in options:
-                                answer = current_round.shuffled_answers[opt["index"]]
-                                player = room.get_player(answer["player_id"])
-                                opt["author"] = player.nickname if player else "?"
-                            # Send vote options + phase_change to detective
-                            await ws_manager.send_to_player(room_id, current_round.detective_player_id, {
-                                "type": "phase_change",
-                                "phase": room.phase.value,
-                            })
-                            await ws_manager.send_to_player(room_id, current_round.detective_player_id, {
-                                "type": "vote_options",
-                                "options": options,
-                            })
-                            # Tell others detective is voting
-                            for p in room.connected_players():
-                                if p.id != current_round.detective_player_id:
-                                    await ws_manager.send_to_player(room_id, p.id, {
-                                        "type": "phase_change",
-                                        "phase": room.phase.value,
-                                        "waiting_for_detective_vote": True,
-                                    })
+                        await ws_manager.send_to_player(room_id, current_round.detective_player_id, {
+                            "type": "vote_options",
+                            "options": options,
+                        })
+                        for p in room.connected_players():
+                            if p.id != current_round.detective_player_id:
+                                await ws_manager.send_to_player(room_id, p.id, {
+                                    "type": "phase_change",
+                                    "phase": room.phase.value,
+                                    "waiting_for_detective_vote": True,
+                                })
 
                 elif msg_type == "cast_vote":
                     answer_index = msg.get("answer_index")
@@ -348,6 +261,7 @@ async def game_websocket(
                                 "correct_index": result["correct_index"],
                                 "honest_nickname": result["honest_nickname"],
                                 "question_term": result["question_term"],
+                                "question_category": current_round.question.category,
                                 "question_definition": result["question_definition"],
                                 "wrong_count": result["wrong_count"],
                                 "answers": full_answers,
@@ -369,6 +283,13 @@ async def game_websocket(
                                 "ready_player_ids": [],
                                 "all_ready": False,
                             })
+                            # Update user stats for registered players
+                            for entry in result["standings"]:
+                                pid = entry["player_id"]
+                                player = room.get_player(pid)
+                                if player and player.user_id is not None:
+                                    is_winner = (entry == result["standings"][0])
+                                    update_user_stats(player.user_id, entry["score"], is_winner)
                         else:
                             # Wrong vote — tell detective to try again
                             await ws_manager.send_to_player(room_id, player_id, {
@@ -383,15 +304,6 @@ async def game_websocket(
                                         "type": "detective_retry",
                                         "wrong_count": len(current_round.detective_wrong_answer_indices),
                                     })
-                    else:
-                        # Mode 1: normal voting
-                        await ws_manager.send_to_player(room_id, player_id, {
-                            "type": "vote_cast",
-                        })
-                        total_voters = len(room.connected_players()) - 1  # exclude judge
-                        if len(current_round.votes) >= total_voters:
-                            reveal = game_engine.judge_end_vote(room, current_round.judge_id)
-                            await _broadcast_reveal(room, room_manager, game_engine, ws_manager, room_id, reveal)
 
                 elif msg_type == "ready_next_round":
                     progress = game_engine.player_ready_for_next(room, player_id)
@@ -407,57 +319,51 @@ async def game_websocket(
                     if progress["all_ready"] and progress.get("round_info"):
                         info = progress["round_info"]
                         game = room.current_game
-                        if game and game.mode == GameMode.WHO_IS_HONEST:
-                            # Mode 2: auto-start next round with new roles
-                            q = get_random_question()
-                            if q is None:
-                                await ws_manager.send_to_player(room_id, player_id, {
-                                    "type": "error", "message": "题库为空"
-                                })
-                                continue
-                            round_info = game_engine.mode2_start_round(room, q)
+                        if game:
+                            room.phase = GamePhase.SELECTING
+                            roles = game_engine._assign_roles(room)
+                            game.mode2_roles = roles
                             await ws_manager.broadcast_to_all(room_id, {
                                 "type": "round_start",
-                                "round_number": round_info["round_number"],
+                                "round_number": info.get("round_number", 0),
                                 "standings": info.get("standings", []),
                             })
                             await ws_manager.broadcast_to_all(room_id, {
                                 "type": "phase_change",
                                 "phase": room.phase.value,
-                                "question_term": q.term,
-                                "round_number": round_info["round_number"],
                             })
-                            # Send role info privately
-                            for pid, role in round_info["roles"].items():
-                                role_msg = {
-                                    "type": "role_info",
-                                    "role": role,
-                                }
-                                if role == "honest":
-                                    role_msg["question_definition"] = round_info["question_definition"]
+                            for pid, role in roles.items():
+                                role_msg = {"type": "role_info", "role": role}
                                 await ws_manager.send_to_player(room_id, pid, role_msg)
-                        else:
-                            # Mode 1: judge rotates
-                            await ws_manager.broadcast_to_all(room_id, {
-                                "type": "round_start",
-                                **info,
-                            })
-                            await ws_manager.broadcast_to_all(room_id, {
-                                "type": "phase_change",
-                                "phase": room.phase.value,
-                            })
+                            detective_id = next((pid for pid, r in roles.items() if r == "detective"), None)
+                            if detective_id:
+                                candidates = game_engine.get_candidates(room)
+                                await ws_manager.send_to_player(room_id, detective_id, {
+                                    "type": "candidate_questions",
+                                    "questions": candidates,
+                                })
 
                 elif msg_type == "end_game":
                     result = game_engine.end_game(room, player_id)
                     await ws_manager.broadcast_to_all(room_id, {
                         "type": "game_over",
-                        "mode": room.current_game.mode.value if room.current_game else "classic",
+                        "mode": "who_is_honest",
                         **result,
                     })
                     await ws_manager.broadcast_to_all(room_id, {
                         "type": "phase_change",
                         "phase": "game_over",
                     })
+                    # Update user stats for registered players
+                    standings = result.get("standings", [])
+                    if standings:
+                        winner_id = standings[0]["player_id"]
+                        for entry in standings:
+                            pid = entry["player_id"]
+                            player = room.get_player(pid)
+                            if player and player.user_id is not None:
+                                is_winner = (pid == winner_id)
+                                update_user_stats(player.user_id, entry["score"], is_winner)
 
             except GameError as e:
                 await ws_manager.send_to_player(room_id, player_id, {
@@ -491,26 +397,3 @@ async def game_websocket(
             })
 
 
-async def _broadcast_reveal(room, room_manager, game_engine, ws_manager, room_id, reveal_data):
-    """Broadcast reveal results for classic mode."""
-    game = room.current_game
-
-    await ws_manager.broadcast_to_all(room_id, {
-        "type": "reveal",
-        **reveal_data,
-    })
-    await ws_manager.broadcast_to_all(room_id, {
-        "type": "phase_change",
-        "phase": room.phase.value,
-    })
-
-    # Clear ready set for new reveal phase, broadcast initial ready progress
-    game.ready_for_next.clear()
-    connected = room.connected_players()
-    await ws_manager.broadcast_to_all(room_id, {
-        "type": "ready_progress",
-        "ready_count": 0,
-        "total_count": len(connected),
-        "ready_player_ids": [],
-        "all_ready": False,
-    })
