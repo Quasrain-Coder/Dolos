@@ -82,6 +82,8 @@ async def game_websocket(
         if cr:
             if not sync.get("question_term"):
                 sync["question_term"] = cr.question.term
+            if cr:
+                sync["question_category"] = cr.question.category
             # Send vote options if in voting or later
             # Mode 2: only detective gets vote_options; others get waiting flag
             if room.phase.value in ("voting", "revealing", "round_end") and cr.shuffled_answers:
@@ -188,6 +190,7 @@ async def game_websocket(
                             "type": "phase_change",
                             "phase": room.phase.value,
                             "question_term": q2.term,
+                            "question_category": q2.category,
                             "round_number": round_info["round_number"],
                         })
                         # Send role info privately to each player
@@ -223,11 +226,13 @@ async def game_websocket(
                             "phase": room.phase.value,
                             "judge_id": player_id,
                             "question_term": q.term,
+                            "question_category": q.category,
                             "round_number": draw_info["round_number"],
                         })
                         await ws_manager.send_to_player(room_id, player_id, {
                             "type": "judge_info",
                             "question_term": q.term,
+                            "question_category": q.category,
                             "question_definition": q.real_definition,
                         })
 
@@ -354,6 +359,7 @@ async def game_websocket(
                                 "correct_index": result["correct_index"],
                                 "honest_nickname": result["honest_nickname"],
                                 "question_term": result["question_term"],
+                                "question_category": current_round.question.category,
                                 "question_definition": result["question_definition"],
                                 "wrong_count": result["wrong_count"],
                                 "answers": full_answers,
@@ -444,6 +450,7 @@ async def game_websocket(
                                 "type": "phase_change",
                                 "phase": room.phase.value,
                                 "question_term": q.term,
+                                "question_category": q.category,
                                 "round_number": round_info["round_number"],
                             })
                             # Send role info privately

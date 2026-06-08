@@ -25,7 +25,7 @@
       <!-- Mode 2: detective sees question but doesn't submit -->
       <div v-if="roomStore.phase === 'answering' && roomStore.isWhoIsHonest && gameStore.isDetective" class="phase-waiting">
         <div class="question-card">
-          <div class="label">这道题是</div>
+          <div class="label">这道题是 <span v-if="gameStore.questionCategory" class="question-category">{{ gameStore.questionCategory }}</span></div>
           <div class="term">{{ gameStore.questionTerm }}</div>
           <div class="hint">🕵️ 等待其他玩家提交答案，之后由你来投票和猜测老实人</div>
         </div>

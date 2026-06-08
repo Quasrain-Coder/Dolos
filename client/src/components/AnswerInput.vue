@@ -2,7 +2,7 @@
 <template>
   <div class="answer-input">
     <div class="question-card">
-      <div class="label">这道题是</div>
+      <div class="label">这道题是 <span v-if="gameStore.questionCategory" class="question-category">{{ gameStore.questionCategory }}</span></div>
       <div class="term">{{ gameStore.questionTerm }}</div>
       <div class="hint" v-if="!gameStore.isHonest">写出一个能骗过别人的假定义</div>
       <div class="hint honest-hint" v-else>你是老实人！参考下方真定义，用自己的话写出答案</div>

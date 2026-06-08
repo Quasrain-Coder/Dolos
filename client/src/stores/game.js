@@ -5,6 +5,7 @@ import { useRoomStore } from './room'
 
 export const useGameStore = defineStore('game', () => {
   const questionTerm = ref('')
+  const questionCategory = ref('')
   const judgeId = ref('')
   const judgeDefinition = ref('')
   const myAnswer = ref('')
@@ -57,6 +58,7 @@ export const useGameStore = defineStore('game', () => {
   function setPhase(phase, data) {
     if (phase === 'answering') {
       questionTerm.value = data.question_term || ''
+      questionCategory.value = data.question_category || ''
       if (data.judge_id) judgeId.value = data.judge_id
       myAnswer.value = ''
       answerSubmitted.value = false
@@ -93,6 +95,7 @@ export const useGameStore = defineStore('game', () => {
         break
       case 'judge_info':
         questionTerm.value = msg.question_term
+        questionCategory.value = msg.question_category || ''
         judgeDefinition.value = msg.question_definition
         break
       case 'role_info':
@@ -126,6 +129,9 @@ export const useGameStore = defineStore('game', () => {
         }
         if (msg.question_term) {
           questionTerm.value = msg.question_term
+        }
+        if (msg.question_category) {
+          questionCategory.value = msg.question_category
         }
         break
       case 'vote_wrong':
@@ -180,6 +186,7 @@ export const useGameStore = defineStore('game', () => {
         // Full state restore on reconnect
         judgeId.value = msg.judge_id || ''
         if (msg.question_term) questionTerm.value = msg.question_term
+        if (msg.question_category) questionCategory.value = msg.question_category
         if (msg.question_definition) judgeDefinition.value = msg.question_definition
         if (msg.vote_options) voteOptions.value = msg.vote_options
         if (msg.standings) standings.value = msg.standings
@@ -210,7 +217,7 @@ export const useGameStore = defineStore('game', () => {
   }
 
   return {
-    questionTerm, judgeId, judgeDefinition, myAnswer, answerSubmitted,
+    questionTerm, questionCategory, judgeId, judgeDefinition, myAnswer, answerSubmitted,
     voteOptions, myVote, voteCast, revealData, standings, gameOver,
     isJudge, setPhase, updateFromMessage,
     // Mode 2
