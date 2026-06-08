@@ -31,31 +31,6 @@
         />
       </template>
 
-      <!-- Mode selector -->
-      <div class="mode-selector">
-        <label class="label">游戏模式</label>
-        <div class="mode-options">
-          <div
-            class="mode-card"
-            :class="{ active: selectedMode === 'classic' }"
-            @click="selectedMode = 'classic'"
-          >
-            <span class="mode-icon">🎭</span>
-            <span class="mode-name">经典模式</span>
-            <span class="mode-desc">法官出题·编假答案·投票猜真</span>
-          </div>
-          <div
-            class="mode-card"
-            :class="{ active: selectedMode === 'who_is_honest' }"
-            @click="selectedMode = 'who_is_honest'"
-          >
-            <span class="mode-icon">🕵️</span>
-            <span class="mode-name">谁是老实人</span>
-            <span class="mode-desc">隐藏角色·老实人说实话·大聪明来猜</span>
-          </div>
-        </div>
-      </div>
-
       <div class="actions">
         <button class="btn btn-primary" @click="createRoom" :disabled="!effectiveNickname">
           ✨ 创建新房间
@@ -99,7 +74,6 @@ const roomStore = useRoomStore()
 const nickname = ref('')
 const roomCode = ref('')
 const error = ref('')
-const selectedMode = ref('classic')
 const showProfile = ref(false)
 const effectiveNickname = computed(() => {
   if (roomStore.isLoggedIn && roomStore.currentUser) {
@@ -124,7 +98,7 @@ async function createRoom() {
     sessionStorage.removeItem('dolos_session')
     const body = {
       nickname: effectiveNickname.value,
-      mode: selectedMode.value,
+      mode: 'who_is_honest',
     }
     if (roomStore.currentUser) {
       body.user_id = roomStore.currentUser.id
@@ -145,7 +119,7 @@ async function createRoom() {
     roomStore.myPlayerId = data.player_id
     roomStore.myToken = data.token
     roomStore.hostId = data.host_id
-    roomStore.gameMode = selectedMode.value
+    roomStore.gameMode = 'who_is_honest'
     router.push(`/room/${data.room_id}`)
   } catch (e) {
     error.value = '网络错误，请重试'

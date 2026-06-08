@@ -26,7 +26,7 @@ export const useRoomStore = defineStore('room', () => {
   const phase = ref('waiting')
   const hostId = ref('')
   const connected = ref(false)
-  const gameMode = ref('classic')
+  const gameMode = ref('who_is_honest')
 
   // Auth state
   const currentUser = ref(null)
@@ -46,12 +46,6 @@ export const useRoomStore = defineStore('room', () => {
   const isHost = computed(() => myPlayerId.value === hostId.value)
   const playerCount = computed(() => players.value.length)
   const canStart = computed(() => isHost.value && playerCount.value >= 2 && phase.value === 'waiting')
-  const isClassic = computed(() => gameMode.value === 'classic')
-  const isWhoIsHonest = computed(() => gameMode.value === 'who_is_honest')
-
-  const modeLabel = computed(() => {
-    return gameMode.value === 'classic' ? '经典模式' : '谁是老实人'
-  })
 
   function initAuth() {
     const token = localStorage.getItem('dolos_user')
@@ -153,7 +147,7 @@ export const useRoomStore = defineStore('room', () => {
 
   return {
     roomId, players, myPlayerId, myToken, phase, hostId, connected, gameMode,
-    isHost, playerCount, canStart, isClassic, isWhoIsHonest, modeLabel,
+    isHost, playerCount, canStart,
     setRoom, updateFromMessage,
     // Auth
     currentUser, authChecked, authError, showLoginModal, isLoggedIn,
