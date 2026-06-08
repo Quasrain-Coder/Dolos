@@ -381,3 +381,9 @@ html, body {
   border-color: var(--primary);
   color: var(--text);
 }
+.logged-in-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--accent);
+  padding: 8px 0;
+}

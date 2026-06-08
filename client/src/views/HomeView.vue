@@ -15,14 +15,21 @@
     </div>
 
     <div class="card">
-      <label class="label">你的昵称</label>
-      <input
-        v-model="nickname"
-        class="input"
-        placeholder="输入显示名称..."
-        maxlength="12"
-        @keyup.enter="createRoom"
-      />
+      <!-- Logged in: no nickname input, use username directly -->
+      <template v-if="roomStore.isLoggedIn && roomStore.currentUser">
+        <label class="label">当前账号</label>
+        <div class="logged-in-name">{{ roomStore.currentUser.username }}</div>
+      </template>
+      <template v-else>
+        <label class="label">你的昵称</label>
+        <input
+          v-model="nickname"
+          class="input"
+          placeholder="输入显示名称..."
+          maxlength="12"
+          @keyup.enter="createRoom"
+        />
+      </template>
 
       <!-- Mode selector -->
       <div class="mode-selector">
@@ -50,7 +57,7 @@
       </div>
 
       <div class="actions">
-        <button class="btn btn-primary" @click="createRoom" :disabled="!nickname.trim()">
+        <button class="btn btn-primary" @click="createRoom" :disabled="!effectiveNickname">
           ✨ 创建新房间
         </button>
 
@@ -64,7 +71,7 @@
             maxlength="4"
             @keyup.enter="joinRoom"
           />
-          <button class="btn btn-secondary" @click="joinRoom" :disabled="!nickname.trim() || !roomCode.trim()">
+          <button class="btn btn-secondary" @click="joinRoom" :disabled="!effectiveNickname || !roomCode.trim()">
             加入
           </button>
         </div>
@@ -79,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useRoomStore } from '../stores/room'
 import LoginModal from './LoginModal.vue'
@@ -95,26 +102,29 @@ const error = ref('')
 const selectedMode = ref('classic')
 const showProfile = ref(false)
 
+const effectiveNickname = computed(() => {
+  if (roomStore.isLoggedIn && roomStore.currentUser) {
+    return roomStore.currentUser.username
+  }
+  return nickname.value.trim()
+})
+
 // If URL has a room code (e.g. /#/join/KK4Z), pre-fill it
-onMounted(async () => {
+onMounted(() => {
   roomStore.initAuth()
   const codeFromUrl = route.params.roomCode
   if (codeFromUrl) {
     roomCode.value = codeFromUrl.toUpperCase()
   }
-  await new Promise(r => setTimeout(r, 200))
-  if (roomStore.currentUser && !nickname.value) {
-    nickname.value = roomStore.currentUser.username
-  }
 })
 
 async function createRoom() {
-  if (!nickname.value.trim()) return
+  if (!effectiveNickname.value) return
   error.value = ''
   try {
     sessionStorage.removeItem('dolos_session')
     const body = {
-      nickname: nickname.value.trim(),
+      nickname: effectiveNickname.value,
       mode: selectedMode.value,
     }
     if (roomStore.currentUser) {
@@ -144,12 +154,12 @@ async function createRoom() {
 }
 
 async function joinRoom() {
-  if (!nickname.value.trim() || !roomCode.value.trim()) return
+  if (!effectiveNickname.value || !roomCode.value.trim()) return
   error.value = ''
   try {
     sessionStorage.removeItem('dolos_session')
     const body = {
-      nickname: nickname.value.trim(),
+      nickname: effectiveNickname.value,
     }
     if (roomStore.currentUser) {
       body.user_id = roomStore.currentUser.id
