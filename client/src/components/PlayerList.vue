@@ -11,7 +11,7 @@
         voted: gameStore.votedPlayers.includes(p.id),
       }"
     >
-      <div class="seat-avatar">
+      <div class="seat-avatar" :class="{ clickable: p.user_id }" @click.stop="p.user_id && toggleStats(p)">
         <span class="seat-icon">{{ seatIcon(p) }}</span>
         <span v-if="gameStore.votedPlayers.includes(p.id)" class="seat-badge vote">🗳️</span>
         <span v-else-if="gameStore.submittedPlayers.includes(p.id)" class="seat-badge done">✅</span>

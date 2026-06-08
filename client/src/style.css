@@ -167,6 +167,7 @@ html, body {
   font-size: 28px;
   line-height: 1;
 }
+.seat-avatar.clickable { cursor: pointer; }
 .seat-badge {
   position: absolute;
   bottom: -4px;
