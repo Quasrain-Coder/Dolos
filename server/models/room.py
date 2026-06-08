@@ -14,6 +14,7 @@ class GameMode(str, Enum):
 class GamePhase(str, Enum):
     WAITING = "waiting"
     DRAWING = "drawing"
+    SELECTING = "selecting"    # mode 2: detective picks from 3 candidates
     ANSWERING = "answering"
     VOTING = "voting"
     REVEALING = "revealing"
@@ -47,6 +48,8 @@ class Game:
     phase: GamePhase = GamePhase.WAITING
     mode: GameMode = GameMode.CLASSIC
     ready_for_next: set = field(default_factory=set)  # player_ids who clicked "ready for next round"
+    candidate_questions: list = field(default_factory=list)  # [{term, definition, category}] mode2 detective selection
+    mode2_roles: dict = field(default_factory=dict)  # {player_id: role} for current round
 
     @property
     def current_round(self) -> Optional[Round]:

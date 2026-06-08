@@ -25,6 +25,37 @@ class NotEnoughPlayersError(GameError):
 
 
 class GameEngine:
+    def get_candidates(self, room: Room, count: int = 3) -> list[dict]:
+        """Get candidate questions for detective selection. Draws from DB."""
+        from server.data.db import get_random_questions
+        questions = get_random_questions(count)
+        room.current_game.candidate_questions = [{"term": q.term, "definition": q.real_definition, "category": q.category, "id": q.id} for q in questions]
+        return [{"term": q.term, "category": q.category} for q in questions]
+
+    def refresh_candidates(self, room: Room, count: int = 3) -> list[dict]:
+        """Replace candidate questions with fresh ones."""
+        from server.data.db import get_random_questions
+        questions = get_random_questions(count)
+        room.current_game.candidate_questions = [{"term": q.term, "definition": q.real_definition, "category": q.category, "id": q.id} for q in questions]
+        return [{"term": q.term, "category": q.category} for q in questions]
+
+    def select_question(self, room: Room, player_id: str, index: int) -> dict:
+        """Detective selects a question from candidates. Uses pre-assigned roles."""
+        game = room.current_game
+        if game is None or game.mode != GameMode.WHO_IS_HONEST:
+            raise GameError("当前不是「谁是老实人」模式")
+        if room.phase != GamePhase.SELECTING:
+            raise GameError("当前不是选题阶段")
+        candidates = game.candidate_questions
+        if not candidates or index < 0 or index >= len(candidates):
+            raise GameError("无效的选项")
+        selected = candidates[index]
+        q = Question(id=selected["id"], term=selected["term"], real_definition=selected["definition"], category=selected.get("category", "通用"))
+        # Use pre-assigned roles from SELECTING phase
+        roles = getattr(game, 'mode2_roles', {})
+        round_info = self.mode2_start_round(room, q, roles=roles)
+        return round_info
+
     def start_game(self, room: Room, host_id: str, question: Question, mode: str = "classic") -> None:
         if room.phase != GamePhase.WAITING:
             raise InvalidPhaseError(f"当前阶段是 {room.phase.value}，无法开始")
@@ -60,15 +91,16 @@ class GameEngine:
                 roles[p.id] = "bluffer"
         return roles
 
-    def mode2_start_round(self, room: Room, question: Question) -> dict:
-        """Mode 2: auto-start a round (system draws question, assigns roles)."""
+    def mode2_start_round(self, room: Room, question: Question, roles: dict | None = None) -> dict:
+        """Mode 2: auto-start a round. Uses provided roles or assigns new ones."""
         if room.current_game is None or room.current_game.mode != GameMode.WHO_IS_HONEST:
             raise InvalidPhaseError("当前不是「谁是老实人」模式")
-        if room.phase != GamePhase.DRAWING:
-            raise InvalidPhaseError("当前不是抽题阶段")
+        if room.phase not in (GamePhase.DRAWING, GamePhase.SELECTING):
+            raise InvalidPhaseError("当前不是抽题或选题阶段")
 
         game = room.current_game
-        roles = self._assign_roles(room)
+        if roles is None:
+            roles = self._assign_roles(room)
 
         honest_id = None
         detective_id = None

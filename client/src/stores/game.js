@@ -26,6 +26,8 @@ export const useGameStore = defineStore('game', () => {
   const detectiveWrongAnswerIndices = ref([]) // wrong answer indices detective already tried
   const awaitingDetective = ref(false) // reveal phase: waiting for detective to guess
   const waitingForDetectiveVote = ref(false) // mode 2 voting phase: non-detective players wait
+  const candidateQuestions = ref([])        // mode 2: detective's 3 candidate questions
+  const isSelecting = ref(false)            // mode 2: detective is selecting a question
 
   // Round table: track who submitted / voted
   const submittedPlayers = ref([])
@@ -70,7 +72,18 @@ export const useGameStore = defineStore('game', () => {
       revealData.value = null
       awaitingDetective.value = false
     }
+    if (phase === 'selecting') {
+      isSelecting.value = true
+      candidateQuestions.value = []
+      answerSubmitted.value = false
+      voteCast.value = false
+      myVote.value = null
+      voteOptions.value = []
+      revealData.value = null
+    }
     if (phase === 'drawing') {
+      isSelecting.value = false
+      candidateQuestions.value = []
       if (data.judge_id) judgeId.value = data.judge_id
       answerSubmitted.value = false
       voteCast.value = false
@@ -97,6 +110,9 @@ export const useGameStore = defineStore('game', () => {
         questionTerm.value = msg.question_term
         questionCategory.value = msg.question_category || ''
         judgeDefinition.value = msg.question_definition
+        break
+      case 'candidate_questions':
+        candidateQuestions.value = msg.questions || []
         break
       case 'role_info':
         myRole.value = msg.role
@@ -225,6 +241,8 @@ export const useGameStore = defineStore('game', () => {
     detectiveGuessSubmitted, detectiveGuessResult, detectiveWrongAnswerIndices, awaitingDetective,
     isHonest, isDetective, isBluffer, roleLabel,
     waitingForDetectiveVote,
+    // Detective question picker
+    candidateQuestions, isSelecting,
     // Round table
     submittedPlayers, votedPlayers,
     // Ready-for-next

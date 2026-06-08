@@ -296,6 +296,49 @@ html, body {
 .success-badge { font-size: 22px; font-weight: bold; color: var(--accent); margin-bottom: 8px; }
 .definition-reveal { margin-top: 12px; text-align: left; background: #1a2a2a; border-radius: 8px; padding: 12px; border: 1px dashed var(--accent); }
 
+/* --- Detective question picker --- */
+.question-picker {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  border: 2px solid var(--warn);
+}
+.picker-header { text-align: center; margin-bottom: 16px; }
+.picker-header h3 { color: var(--warn); font-size: 18px; margin-bottom: 4px; }
+.picker-hint { color: var(--text-dim); font-size: 13px; }
+.candidate-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.candidate-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: var(--surface-hover);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.candidate-card.selected { border-color: var(--warn); background: #2a2a1a; }
+.candidate-tag {
+  font-size: 11px;
+  background: var(--surface);
+  color: var(--text-dim);
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.candidate-term {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--text);
+}
+.picker-actions {
+  display: flex;
+  gap: 10px;
+}
+.picker-actions .btn { flex: 1; }
+
 /* --- Login modal --- */
 .modal-overlay {
   position: fixed;
