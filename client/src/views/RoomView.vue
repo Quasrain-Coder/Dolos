@@ -25,9 +25,14 @@
           :class="{ me: p.id === roomStore.myPlayerId, host: p.is_host }"
         >
           <span class="player-icon">{{ p.is_host ? '👑' : '🎭' }}</span>
-          <span class="player-name">{{ p.nickname }}</span>
+          <span class="player-name" :class="{ clickable: p.user_id }" @click.stop="toggleStats(p)">{{ p.nickname }}</span>
           <span v-if="p.id === roomStore.myPlayerId" class="tag">你</span>
           <span v-if="p.is_host" class="tag host-tag">房主</span>
+          <PlayerStatsPopup
+            v-if="selectedPid === p.id && p.user_id"
+            :user-id="p.user_id"
+            @close="selectedPid = null"
+          />
         </div>
       </div>
 
@@ -53,11 +58,17 @@ import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRoomStore } from '../stores/room'
 import { useWebSocket } from '../composables/useWebSocket'
+import PlayerStatsPopup from '../components/PlayerStatsPopup.vue'
 
 const route = useRoute()
 const roomStore = useRoomStore()
 const { connect, send } = useWebSocket()
 const copied = ref(false)
+const selectedPid = ref(null)
+
+function toggleStats(p) {
+  selectedPid.value = selectedPid.value === p.id ? null : p.id
+}
 
 onMounted(() => {
   roomStore.initAuth()
