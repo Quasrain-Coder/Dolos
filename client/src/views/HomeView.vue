@@ -1,6 +1,14 @@
 <!-- client/src/views/HomeView.vue -->
 <template>
   <div class="home">
+    <div class="auth-bar">
+      <template v-if="roomStore.isLoggedIn && roomStore.currentUser">
+        <span class="auth-user" @click="showProfile = true">👤 {{ roomStore.currentUser.username }}</span>
+        <button class="btn-auth" @click="showProfile = true">📊</button>
+      </template>
+      <button v-else class="btn-auth" @click="roomStore.showLoginModal = true">登录 / 注册</button>
+    </div>
+
     <div class="logo">
       <h1>🎭 DOLOS</h1>
       <p class="subtitle">瞎掰王 — 看谁会忽悠</p>
@@ -64,6 +72,9 @@
 
       <p v-if="error" class="error">{{ error }}</p>
     </div>
+
+    <LoginModal :visible="roomStore.showLoginModal" @close="roomStore.showLoginModal = false" />
+    <ProfilePanel :visible="showProfile" @close="showProfile = false" />
   </div>
 </template>
 
@@ -71,6 +82,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useRoomStore } from '../stores/room'
+import LoginModal from './LoginModal.vue'
+import ProfilePanel from './ProfilePanel.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -80,12 +93,18 @@ const nickname = ref('')
 const roomCode = ref('')
 const error = ref('')
 const selectedMode = ref('classic')
+const showProfile = ref(false)
 
 // If URL has a room code (e.g. /#/join/KK4Z), pre-fill it
-onMounted(() => {
+onMounted(async () => {
+  roomStore.initAuth()
   const codeFromUrl = route.params.roomCode
   if (codeFromUrl) {
     roomCode.value = codeFromUrl.toUpperCase()
+  }
+  await new Promise(r => setTimeout(r, 200))
+  if (roomStore.currentUser && !nickname.value) {
+    nickname.value = roomStore.currentUser.username
   }
 })
 
@@ -94,10 +113,17 @@ async function createRoom() {
   error.value = ''
   try {
     sessionStorage.removeItem('dolos_session')
+    const body = {
+      nickname: nickname.value.trim(),
+      mode: selectedMode.value,
+    }
+    if (roomStore.currentUser) {
+      body.user_id = roomStore.currentUser.id
+    }
     const resp = await fetch('/api/rooms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nickname: nickname.value.trim(), mode: selectedMode.value }),
+      body: JSON.stringify(body),
     })
     if (!resp.ok) {
       const data = await resp.json()
@@ -122,10 +148,16 @@ async function joinRoom() {
   error.value = ''
   try {
     sessionStorage.removeItem('dolos_session')
+    const body = {
+      nickname: nickname.value.trim(),
+    }
+    if (roomStore.currentUser) {
+      body.user_id = roomStore.currentUser.id
+    }
     const resp = await fetch(`/api/rooms/${roomCode.value.trim().toUpperCase()}/join`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nickname: nickname.value.trim() }),
+      body: JSON.stringify(body),
     })
     if (!resp.ok) {
       const data = await resp.json()
