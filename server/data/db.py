@@ -72,6 +72,19 @@ def _import_builtin_questions(conn: sqlite3.Connection):
     print(f"Imported {len(questions)} built-in questions")
 
 
+def get_random_questions(count: int = 3) -> list[Question]:
+    conn = get_connection()
+    rows = conn.execute("SELECT * FROM questions ORDER BY RANDOM() LIMIT ?", (count,)).fetchall()
+    conn.close()
+    return [
+        Question(
+            id=row["id"], term=row["term"], real_definition=row["real_definition"],
+            category=row["category"], source=row["source"], contributor_id=row["contributor_id"],
+        )
+        for row in rows
+    ]
+
+
 def get_random_question() -> Question | None:
     conn = get_connection()
     row = conn.execute("SELECT * FROM questions ORDER BY RANDOM() LIMIT 1").fetchone()

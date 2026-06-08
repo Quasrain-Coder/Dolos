@@ -177,31 +177,29 @@ async def game_websocket(
                     room.phase = GamePhase.DRAWING
 
                     if game and game.mode == GameMode.WHO_IS_HONEST:
-                        # Mode 2: auto-start first round
-                        q2 = get_random_question()
-                        if q2 is None:
-                            await ws_manager.send_to_player(room_id, player_id, {
-                                "type": "error", "message": "题库为空"
-                            })
-                            continue
-                        round_info = game_engine.mode2_start_round(room, q2)
+                        # Mode 2: enter SELECTING phase — detective picks from 3 candidates
+                        room.phase = GamePhase.SELECTING
+                        # Assign roles first
+                        roles = game_engine._assign_roles(room)
+                        # Store roles on the game for later use
+                        game.mode2_roles = roles
                         # Send phase change to all
                         await ws_manager.broadcast_to_all(room_id, {
                             "type": "phase_change",
                             "phase": room.phase.value,
-                            "question_term": q2.term,
-                            "question_category": q2.category,
-                            "round_number": round_info["round_number"],
                         })
                         # Send role info privately to each player
-                        for pid, role in round_info["roles"].items():
-                            role_msg = {
-                                "type": "role_info",
-                                "role": role,
-                            }
-                            if role == "honest":
-                                role_msg["question_definition"] = round_info["question_definition"]
+                        for pid, role in roles.items():
+                            role_msg = {"type": "role_info", "role": role}
                             await ws_manager.send_to_player(room_id, pid, role_msg)
+                        # Send 3 candidate questions to detective
+                        detective_id = next((pid for pid, r in roles.items() if r == "detective"), None)
+                        if detective_id:
+                            candidates = game_engine.get_candidates(room)
+                            await ws_manager.send_to_player(room_id, detective_id, {
+                                "type": "candidate_questions",
+                                "questions": candidates,
+                            })
                     else:
                         # Mode 1 (classic): existing behavior
                         room.phase = GamePhase.DRAWING
@@ -210,6 +208,31 @@ async def game_websocket(
                             "phase": room.phase.value,
                             "judge_id": room.players[0].id,
                         })
+
+                elif msg_type == "refresh_candidates":
+                    candidates = game_engine.refresh_candidates(room)
+                    await ws_manager.send_to_player(room_id, player_id, {
+                        "type": "candidate_questions",
+                        "questions": candidates,
+                    })
+
+                elif msg_type == "select_question":
+                    index = msg.get("index", 0)
+                    round_info = game_engine.select_question(room, player_id, index)
+                    # Broadcast selected question and phase change to all
+                    await ws_manager.broadcast_to_all(room_id, {
+                        "type": "phase_change",
+                        "phase": room.phase.value,
+                        "question_term": round_info["question_term"],
+                        "question_category": room.current_game.current_round.question.category if room.current_game and room.current_game.current_round else "",
+                        "round_number": round_info["round_number"],
+                    })
+                    # Send role info (honest gets definition)
+                    for pid, role in round_info["roles"].items():
+                        role_msg = {"type": "role_info", "role": role}
+                        if role == "honest":
+                            role_msg["question_definition"] = round_info["question_definition"]
+                        await ws_manager.send_to_player(room_id, pid, role_msg)
 
                 elif msg_type == "judge_action":
                     action = msg.get("action", "")
@@ -433,35 +456,29 @@ async def game_websocket(
                         info = progress["round_info"]
                         game = room.current_game
                         if game and game.mode == GameMode.WHO_IS_HONEST:
-                            # Mode 2: auto-start next round with new roles
-                            q = get_random_question()
-                            if q is None:
-                                await ws_manager.send_to_player(room_id, player_id, {
-                                    "type": "error", "message": "题库为空"
-                                })
-                                continue
-                            round_info = game_engine.mode2_start_round(room, q)
+                            # Mode 2: next round — enter SELECTING phase
+                            room.phase = GamePhase.SELECTING
+                            roles = game_engine._assign_roles(room)
+                            game.mode2_roles = roles
                             await ws_manager.broadcast_to_all(room_id, {
                                 "type": "round_start",
-                                "round_number": round_info["round_number"],
+                                "round_number": info.get("round_number", 0),
                                 "standings": info.get("standings", []),
                             })
                             await ws_manager.broadcast_to_all(room_id, {
                                 "type": "phase_change",
                                 "phase": room.phase.value,
-                                "question_term": q.term,
-                                "question_category": q.category,
-                                "round_number": round_info["round_number"],
                             })
-                            # Send role info privately
-                            for pid, role in round_info["roles"].items():
-                                role_msg = {
-                                    "type": "role_info",
-                                    "role": role,
-                                }
-                                if role == "honest":
-                                    role_msg["question_definition"] = round_info["question_definition"]
+                            for pid, role in roles.items():
+                                role_msg = {"type": "role_info", "role": role}
                                 await ws_manager.send_to_player(room_id, pid, role_msg)
+                            detective_id = next((pid for pid, r in roles.items() if r == "detective"), None)
+                            if detective_id:
+                                candidates = game_engine.get_candidates(room)
+                                await ws_manager.send_to_player(room_id, detective_id, {
+                                    "type": "candidate_questions",
+                                    "questions": candidates,
+                                })
                         else:
                             # Mode 1: judge rotates
                             await ws_manager.broadcast_to_all(room_id, {

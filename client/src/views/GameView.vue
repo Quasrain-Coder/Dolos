@@ -8,6 +8,17 @@
     <ScoreBoard />
     <PlayerList />
 
+    <DetectiveQuestionPicker
+      v-if="roomStore.phase === 'selecting' && gameStore.isDetective"
+      :visible="true"
+      :candidates="gameStore.candidateQuestions"
+      @refresh="send('refresh_candidates')"
+      @select="(idx) => send('select_question', { index: idx })"
+    />
+    <div v-if="roomStore.phase === 'selecting' && !gameStore.isDetective" class="phase-waiting">
+      <p>🕵️ 大聪明正在选题...</p>
+    </div>
+
     <div class="game-main">
       <!-- DRAWING: waiting for judge (classic) or system (mode 2) -->
       <div v-if="roomStore.phase === 'drawing'" class="phase-waiting">
@@ -108,6 +119,7 @@ import { useGameStore } from '../stores/game'
 import { useWebSocket } from '../composables/useWebSocket'
 import ScoreBoard from '../components/ScoreBoard.vue'
 import PlayerList from '../components/PlayerList.vue'
+import DetectiveQuestionPicker from '../components/DetectiveQuestionPicker.vue'
 import AnswerInput from '../components/AnswerInput.vue'
 import VotingPanel from '../components/VotingPanel.vue'
 import RevealPanel from '../components/RevealPanel.vue'
